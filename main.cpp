@@ -1,5 +1,6 @@
 #pragma region Header Files
 // STL Header
+#include <map>
 #include <iostream>
 #include <istream>
 #include <ostream>
@@ -7,28 +8,80 @@
 
 // Boost Header
 #include <boost/asio.hpp>
+#include <boost/program_options.hpp>
 #pragma endregion
 
-using boost::asio::ip::tcp;
+using namespace std;
 
 int main(int argc, char* argv[])
 {
-	try
+	string	sURL;
+	string	sDir;
+	pair<string,string>	sWebPage;
+
+	#pragma region Program Options
 	{
-		if (argc != 3)
+		namespace BPO = boost::program_options;
+
+		// define program options
+		BPO::options_description bpoOptions( "Command Line Options" );
+		bpoOptions.add_options()
+			( "help,H",		BPO::bool_switch()->notifier( [&bpoOptions]( bool bH ){ if( bH ){ std::cout << bpoOptions << std::endl; exit(0); } } ),	"Help message" )
+			( "url,U",		BPO::value(&sURL)->value_name("Web_Link"),		"The link of index page." )
+			( "output,O",	BPO::value(&sDir)->value_name("output_dir"),	"Directory to save output files" );
+
+		// prase
+		try
 		{
-			std::cout << "Usage: sync_client <server> <path>\n";
-			std::cout << "Example:\n";
-			std::cout << "  sync_client www.boost.org /LICENSE_1_0.txt\n";
+			BPO::variables_map mVMap;
+			BPO::store( BPO::command_line_parser( argc, argv ).options( bpoOptions ).allow_unregistered().run(), mVMap );
+			BPO::notify( mVMap );
+		}
+		catch( BPO::error_with_option_name e )
+		{
+			std::cerr << e.what() << std::endl;
+			std::cout << bpoOptions << std::endl;
 			return 1;
 		}
-		
+		catch( BPO::error e )
+		{
+			std::cerr << e.what() << std::endl;
+			std::cout << bpoOptions << std::endl;
+			return 1;
+		}
+		catch(std::exception e)
+		{
+			std::cerr << e.what() << std::endl;
+			std::cout << bpoOptions << std::endl;
+			return 2;
+		}
+	}
+	#pragma endregion
+
+	#pragma region Anaylaze URL
+	if( sURL.substr( 0, 7 ) == "http://" )
+	{
+		auto uPos = sURL.find_first_of( "/", 8 );
+		sWebPage.first = sURL.substr( 7, uPos - 7 );
+		sWebPage.second = sURL.substr( uPos );
+		cout << "Try to open server: " << sWebPage.first << "\n  path: " << sWebPage.second << endl;
+	}
+	else
+	{
+		cerr << "Please provide a URL begin with \"http://\"" << endl;
+		return -1;
+	}
+	#pragma endregion
+
+	try
+	{
+		using boost::asio::ip::tcp;
 		boost::asio::io_service io_service;
 
 		// Get a list of endpoints corresponding to the server name.
-		tcp::resolver resolver(io_service);
-		tcp::resolver::query query(argv[1], "http");
-		tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+		tcp::resolver resolver( io_service );
+		tcp::resolver::query query( sWebPage.first, "http" );
+		tcp::resolver::iterator endpoint_iterator = resolver.resolve( query );
 
 		// Try each endpoint until we successfully establish a connection.
 		tcp::socket socket(io_service);
@@ -39,8 +92,8 @@ int main(int argc, char* argv[])
 		// allow us to treat all data up until the EOF as the content.
 		boost::asio::streambuf request;
 		std::ostream request_stream(&request);
-		request_stream << "GET " << argv[2] << " HTTP/1.0\r\n";
-		request_stream << "Host: " << argv[1] << "\r\n";
+		request_stream << "GET " << sWebPage.second << " HTTP/1.0\r\n";
+		request_stream << "Host: " << sWebPage.first << "\r\n";
 		request_stream << "Accept: */*\r\n";
 		request_stream << "Connection: close\r\n\r\n";
 
