@@ -8,6 +8,7 @@
 #include <boost/program_options.hpp>
 
 #include "HttpClient.h"
+#include "wenku8.cn.h"
 
 #pragma endregion
 
@@ -58,6 +59,15 @@ int main(int argc, char* argv[])
 	#pragma endregion
 
 	HttpClient mClient;
-	cout << mClient.ReadHtml( sURL );
+	auto mURL = HttpClient::ParseURL( sURL );
+	if( mURL )
+	{
+		Wenku8Cn mSite;
+		if( mSite.CheckServer( mURL->first ) )
+		{
+			std::string& rHtml = mClient.ReadHtml( mURL->first, mURL->second );
+			mSite.AnalyzeIndexPage( rHtml );
+		}
+	}
 	return 0;
 }

@@ -18,9 +18,8 @@ public:
 public:
 	HttpClient();
 
-	std::string ReadHtml( std::string sURL );
+	std::string ReadHtml( const std::string& rServer, const std::string& rPath );
 
-protected:
 	static boost::optional< std::pair<std::string,std::string> > ParseURL( const std::string& sURL );
 
 protected:

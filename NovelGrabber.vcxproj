@@ -84,9 +84,11 @@
   <ItemGroup>
     <ClCompile Include="HttpClient.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="wenku8.cn.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HttpClient.h" />
+    <ClInclude Include="wenku8.cn.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
