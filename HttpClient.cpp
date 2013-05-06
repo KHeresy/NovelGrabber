@@ -1,4 +1,4 @@
-#include <iostream>
+#include <sstream>
 
 #include "HttpClient.h"
 
@@ -9,7 +9,7 @@ HttpClient::HttpClient() : m_Resolver( m_IO_service )
 {
 }
 
-bool HttpClient::Open( std::string sURL )
+std::string HttpClient::ReadHtml( std::string sURL )
 {
 	auto mURL = ParseURL( sURL );
 	if( mURL )
@@ -18,56 +18,56 @@ bool HttpClient::Open( std::string sURL )
 		tcp::iostream sStream;
 		sStream.expires_from_now( boost::posix_time::seconds( 60 ) );
 
+		#pragma region Send request
 		// Establish a connection to the server.
+		m_sigInfoLog( "Connect to " + mURL->first );
 		sStream.connect( mURL->first, "http" );
 		if( !sStream )
 		{
-			std::cout << "Unable to connect: " << sStream.error().message() << "\n";
-			return false;
+			m_sigErrorLog( "Unable to connect: " + sStream.error().message() );
+			return "";
 		}
 
-		// Send the request. We specify the "Connection: close" header so that the
-		// server will close the socket after transmitting the response. This will
-		// allow us to treat all data up until the EOF as the content.
+		// Send the request.
+		m_sigInfoLog( "Request paget " + mURL->second );
 		sStream << "GET " << mURL->second << " HTTP/1.0\r\n";
 		sStream << "Host: " << mURL->first << "\r\n";
 		sStream << "Accept: */*\r\n" << "Connection: close\r\n\r\n";
+		#pragma endregion
 
-		// By default, the stream is tied with itself. This means that the stream
-		// automatically flush the buffered output before attempting a read. It is
-		// not necessary not explicitly flush the stream at this point.
-
+		#pragma region recive data
 		// Check that response is OK.
-		string http_version;
-		sStream >> http_version;
-		unsigned int status_code;
-		sStream >> status_code;
-		string status_message;
-		getline( sStream, status_message );
-		if( !sStream || http_version.substr(0, 5) != "HTTP/" )
+		string sHttpVersion;
+		sStream >> sHttpVersion;
+		unsigned int uCode;
+		sStream >> uCode;
+		string sMssage;
+		getline( sStream, sMssage );
+		m_sigInfoLog( "Recive data: " + sHttpVersion + " / " + sMssage );
+		if( !sStream || sHttpVersion.substr(0, 5) != "HTTP/" )
 		{
-			cout << "Invalid response\n";
-			return 1;
+			m_sigErrorLog( "Invalid response" );
+			return "";
 		}
-		if( status_code != 200 )
+		if( uCode != 200 )
 		{
-			cout << "Response returned with status code " << status_code << "\n";
-			return 1;
+			m_sigErrorLog( "Response returned with status code " + uCode );
+			return "";
 		}
 
 		// Process the response headers, which are terminated by a blank line.
 		string header;
 		while( getline( sStream, header ) && header != "\r" )
-			cout << header << "\n";
-		cout << "\n";
+			m_sigInfoLog( header );
 
 		// Write the remaining data to output.
-		cout << sStream.rdbuf();
-		return true;
+		stringstream oStream;
+		oStream << sStream.rdbuf();
+		return oStream.str();
+		#pragma endregion
 	}
-	return false;
+	return "";
 }
-
 
 boost::optional< pair<string,string> > HttpClient::ParseURL( const string& sURL )
 {

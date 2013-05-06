@@ -1,10 +1,7 @@
 #pragma region Header Files
 
 // STL Header
-#include <map>
 #include <iostream>
-#include <istream>
-#include <ostream>
 #include <string>
 
 // Boost Header
@@ -20,7 +17,6 @@ int main(int argc, char* argv[])
 {
 	string	sURL;
 	string	sDir;
-	pair<string,string>	sWebPage;
 
 	#pragma region Program Options
 	{
@@ -62,6 +58,6 @@ int main(int argc, char* argv[])
 	#pragma endregion
 
 	HttpClient mClient;
-	mClient.Open( sURL );
+	cout << mClient.ReadHtml( sURL );
 	return 0;
 }
