@@ -24,7 +24,7 @@ inline std::string toUTF8( const std::string& rS )
 int main(int argc, char* argv[])
 {
 	string	sURL;
-	string	sDir;
+	string	sDir = ".";
 
 	#pragma region Program Options
 	{
@@ -72,25 +72,44 @@ int main(int argc, char* argv[])
 		Wenku8Cn mSite;
 		if( mSite.CheckServer( mURL->first ) )
 		{
-			std::string& rHtml = mClient.ReadHtml( mURL->first, mURL->second );
+			string rHtml = mClient.ReadHtml( mURL->first, mURL->second );
 			auto vBooks = mSite.AnalyzeIndexPage( rHtml );
 
 			// write test
-			ofstream fFile( "test.html" );
-
-			fFile << "<HTML><BODY>\n";
 			for( BookIndex& rBook : vBooks )
 			{
-				fFile << "<HR>\n";
-				fFile << "<H2>" << toUTF8( rBook.m_sTitle ) << "</H2>\n";
-				fFile << "<H4>" << toUTF8( rBook.m_sAuthor ) << "</H4>\n";
-				for( auto& rLink : rBook.m_vChapter )
+				wstring s = boost::locale::conv::to_utf<wchar_t>( rBook.m_sTitle, "GB2312" ) + L".html";
+				ofstream oFile( s );
+				if( oFile.is_open() )
 				{
-					fFile << "<div><a href=\"" << rLink.second << "\">" << toUTF8( rLink.first ) << "</a></siv>\n";
+					oFile << "<HTML>\n";
+					oFile << "<HEAD><META http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n";
+					oFile << "<BODY>\n";
+					oFile << "<H3 ALIGN=CENTER>" << toUTF8( rBook.m_sTitle ) << "</H3>\n";
+					oFile << "<H4 ALIGN=CENTER>" << toUTF8( rBook.m_sAuthor ) << "</H4>\n";
+					oFile << "<HR>\n";
+
+					// index
+					for( auto& rLink : rBook.m_vChapter )
+					{
+						oFile << "<div><a href=\"#" << &rLink << "\">" << toUTF8( rLink.first ) << "</a></siv>\n";
+					}
+
+					// content
+					for( auto& rLink : rBook.m_vChapter )
+					{
+						oFile << "<A ID=\"" << &rLink << "\"><HR></A>\n";
+
+						auto mCURL = HttpClient::ParseURL( rLink.second );
+						if( mCURL )
+						{
+							oFile << toUTF8( mSite.GetChapterContent( mClient.ReadHtml( mCURL->first, mCURL->second ) ) );
+						}
+					}
+					oFile << "</BODY></HTML>\n";
+					oFile.close();
 				}
 			}
-			fFile << "</BODY></HTML>\n";
-			fFile.close();
 		}
 	}
 	return 0;

@@ -24,6 +24,8 @@ public:
 
 	std::vector<BookIndex> AnalyzeIndexPage( std::string& rHtmlContent );
 
+	std::string GetChapterContent( const std::string& rUrl );
+
 protected:
 	std::set<std::string> m_SiteList;
 

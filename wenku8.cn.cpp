@@ -95,3 +95,12 @@ std::vector<BookIndex> Wenku8Cn::AnalyzeIndexPage( std::string& rHtmlContent )
 	}
 	return vBookLinks;
 }
+
+string Wenku8Cn::GetChapterContent( const string& rHtml )
+{
+	auto pContent = HttpClient::FindContentBetweenTag( rHtml, m_ContentTag );
+	if( pContent.first != string::npos )
+		return pContent.second;
+
+	return "";
+}
