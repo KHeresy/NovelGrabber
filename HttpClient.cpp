@@ -1,5 +1,7 @@
 #include <sstream>
 
+#include <boost/algorithm/string.hpp>
+
 #include "HttpClient.h"
 
 using namespace std;
@@ -74,5 +76,25 @@ boost::optional< pair<string,string> > HttpClient::ParseURL( const string& sURL 
 			return boost::optional< pair<string,string> >( make_pair( sURL.substr( 7, uPos - 7 ), sURL.substr( uPos ) ) );
 		}
 	}
+	return boost::optional< pair<string,string> >();
+}
+
+std::pair<size_t,string> HttpClient::FindContentBetweenTag( const string& rHtml, const pair<string,string>& rTag, size_t uStartPos )
+{
+	size_t uPos1 = rHtml.find( rTag.first, uStartPos );
+	if( uPos1 != string::npos )
+	{
+		size_t uPos2 = rHtml.find( rTag.second, uPos1 );
+		uPos1 = uPos1 + rTag.first.length();
+
+		std::string sContent = rHtml.substr( uPos1, uPos2 - uPos1 );
+		boost::algorithm::trim( sContent );
+		return make_pair( uPos1, sContent );
+	}
+	return make_pair( string::npos, "" );
+}
+
+boost::optional< pair<string,string> > HttpClient::AnalyzeLink( const std::string& rHtml, size_t uStartPos )
+{
 	return boost::optional< pair<string,string> >();
 }
