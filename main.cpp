@@ -1,6 +1,7 @@
 #pragma region Header Files
 
 // STL Header
+#include <fstream>
 #include <iostream>
 #include <string>
 
@@ -66,7 +67,23 @@ int main(int argc, char* argv[])
 		if( mSite.CheckServer( mURL->first ) )
 		{
 			std::string& rHtml = mClient.ReadHtml( mURL->first, mURL->second );
-			mSite.AnalyzeIndexPage( rHtml );
+			auto vBooks = mSite.AnalyzeIndexPage( rHtml );
+
+			// write test
+			ofstream fFile( "test.html" );
+			fFile << "<HTML><BODY>\n";
+			for( BookIndex& rBook : vBooks )
+			{
+				fFile << "<HR>\n";
+				fFile << "<H2>" << rBook.m_sTitle << "</H2>\n";
+				fFile << "<H4>" << rBook.m_sAuthor << "</H4>\n";
+				for( auto& rLink : rBook.m_vChapter )
+				{
+					fFile << "<div><a href=\"" << rLink.second << "\">" << rLink.first << "</a></siv>\n";
+				}
+			}
+			fFile << "</BODY></HTML>\n";
+			fFile.close();
 		}
 	}
 	return 0;

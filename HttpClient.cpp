@@ -96,5 +96,30 @@ std::pair<size_t,string> HttpClient::FindContentBetweenTag( const string& rHtml,
 
 boost::optional< pair<string,string> > HttpClient::AnalyzeLink( const std::string& rHtml, size_t uStartPos )
 {
+	size_t uPos1 = rHtml.find( "<a ", uStartPos );
+	if( uPos1 != string::npos )
+	{
+		size_t uPos2 = rHtml.find( "href=\"", uPos1 );
+		if( uPos2 != string::npos )
+		{
+			uPos2 += 6;
+			uPos1 = rHtml.find( "\"", uPos2 );
+			if( uPos1 != string::npos )
+			{
+				string sLinkUrl = rHtml.substr( uPos2, uPos1 - uPos2 );
+
+				uPos1 = rHtml.find( ">", uPos1 );
+				if( uPos1 != string::npos )
+				{
+					uPos1 += 1;
+					uPos2 = rHtml.find( "</a>", uPos1 );
+					string sLinkText = rHtml.substr( uPos1, uPos2 - uPos1 );
+					boost::algorithm::trim( sLinkText );
+
+					return boost::optional< pair<string,string> >( make_pair( sLinkText, sLinkUrl ) );
+				}
+			}
+		}
+	}
 	return boost::optional< pair<string,string> >();
 }

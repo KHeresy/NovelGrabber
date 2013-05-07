@@ -12,7 +12,7 @@ public:
 	std::string	m_sTitle;
 	std::string	m_sAuthor;
 
-	std::vector<std::string> m_vChapter;
+	std::vector< std::pair<std::string,std::string> > m_vChapter;
 };
 
 class Wenku8Cn
@@ -22,7 +22,7 @@ public:
 
 	bool CheckServer( const std::string& rServer );
 
-	void AnalyzeIndexPage( std::string& rHtmlContent );
+	std::vector<BookIndex> AnalyzeIndexPage( std::string& rHtmlContent );
 
 protected:
 	std::set<std::string> m_SiteList;
@@ -31,5 +31,6 @@ protected:
 	std::pair<std::string,std::string>	m_AuthorTag;
 	std::pair<std::string,std::string>	m_BookTitleTag;
 	std::pair<std::string,std::string>	m_BookChapterTag;
+	std::pair<std::string,std::string>	m_ContentTag;
 };
 

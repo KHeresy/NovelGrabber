@@ -14,6 +14,7 @@ Wenku8Cn::Wenku8Cn()
 	m_AuthorTag			= make_pair( "<div id=\"info\">",					"</div>" );
 	m_BookTitleTag		= make_pair( "<td colspan=\"4\" class=\"vcss\">",	"</td>" );
 	m_BookChapterTag	= make_pair( "<td class=\"ccss\">",					"</td>" );
+	m_ContentTag		= make_pair( "<div id=\"content\">",				"</div>" );
 }
 
 bool Wenku8Cn::CheckServer( const std::string& rServer )
@@ -24,7 +25,7 @@ bool Wenku8Cn::CheckServer( const std::string& rServer )
 	return false;
 }
 
-void Wenku8Cn::AnalyzeIndexPage( std::string& rHtmlContent )
+std::vector<BookIndex> Wenku8Cn::AnalyzeIndexPage( std::string& rHtmlContent )
 {
 	string sTitle, sAuthor;
 
@@ -82,10 +83,15 @@ void Wenku8Cn::AnalyzeIndexPage( std::string& rHtmlContent )
 				if( pLink.second == "&nbsp;" )
 					break;
 
-				mBook.m_vChapter.push_back( pLink.second );
+				auto slink = HttpClient::AnalyzeLink( pLink.second );
+				if( slink )
+				{
+					mBook.m_vChapter.push_back( *slink );
+				}
 				uPos1 = pLink.first;
 			}
 		}
 		vBookLinks.push_back( mBook );
 	}
+	return vBookLinks;
 }
