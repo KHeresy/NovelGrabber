@@ -83,16 +83,16 @@ int main(int argc, char* argv[])
 				if( oFile.is_open() )
 				{
 					oFile << "<HTML>\n";
-					oFile << "<HEAD><META http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n";
+					oFile << "<HEAD><META http-equiv=\"Content-Type\" content=\"text/html; charset=GBK\">\n";
 					oFile << "<BODY>\n";
-					oFile << "<H3 ALIGN=CENTER>" << toUTF8( rBook.m_sTitle ) << "</H3>\n";
-					oFile << "<H4 ALIGN=CENTER>" << toUTF8( rBook.m_sAuthor ) << "</H4>\n";
+					oFile << "<H3 ALIGN=CENTER>" << rBook.m_sTitle << "</H3>\n";
+					oFile << "<H4 ALIGN=CENTER>" << rBook.m_sAuthor << "</H4>\n";
 					oFile << "<HR>\n";
 
 					// index
 					for( auto& rLink : rBook.m_vChapter )
 					{
-						oFile << "<div><a href=\"#" << &rLink << "\">" << toUTF8( rLink.first ) << "</a></siv>\n";
+						oFile << "<div><a href=\"#" << &rLink << "\">" << rLink.first << "</a></siv>\n";
 					}
 
 					// content
@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
 						auto mCURL = HttpClient::ParseURL( rLink.second );
 						if( mCURL )
 						{
-							oFile << toUTF8( mSite.GetChapterContent( mClient.ReadHtml( mCURL->first, mCURL->second ) ) );
+							oFile << mSite.GetChapterContent( mClient.ReadHtml( mCURL->first, mCURL->second ) );
 						}
 					}
 					oFile << "</BODY></HTML>\n";

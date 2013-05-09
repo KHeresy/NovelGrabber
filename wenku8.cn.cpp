@@ -14,7 +14,7 @@ Wenku8Cn::Wenku8Cn()
 	m_AuthorTag			= make_pair( "<div id=\"info\">",					"</div>" );
 	m_BookTitleTag		= make_pair( "<td colspan=\"4\" class=\"vcss\">",	"</td>" );
 	m_BookChapterTag	= make_pair( "<td class=\"ccss\">",					"</td>" );
-	m_ContentTag		= make_pair( "<div id=\"content\">",				"</div>" );
+	m_ContentTag		= make_pair( "<div id=\"content\">",				"\n</div>" );
 }
 
 bool Wenku8Cn::CheckServer( const std::string& rServer )
