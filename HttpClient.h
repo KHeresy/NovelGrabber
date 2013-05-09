@@ -18,6 +18,8 @@ public:
 public:
 	HttpClient();
 
+	void FindTag( const std::string& rHtml, const std::string& rTag, const std::map< std::string, boost::optional<std::string> >& rAttribute, size_t uStartPos = 0 );
+
 	std::string ReadHtml( const std::string& rServer, const std::string& rPath );
 
 	static boost::optional< std::pair<std::string,std::string> > ParseURL( const std::string& sURL );
