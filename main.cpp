@@ -5,7 +5,10 @@
 #include <iostream>
 #include <string>
 
+#include <process.h>
+
 // Boost Header
+#include <boost/format.hpp>
 #include <boost/locale.hpp>
 #include <boost/program_options.hpp>
 
@@ -19,6 +22,15 @@ using namespace std;
 inline std::string toUTF8( const std::string& rS )
 {
 	return boost::locale::conv::to_utf<char>( rS, "GB2312" );
+}
+
+
+inline void ExternCommand( const wstring& sFile, const wstring& sTmpFile )
+{
+	wstring	sIconv	= L"Binary\\libiconv\\iconv.exe -f GBK -t UTF-8 \"%1%\" > \"%2%\"",
+			sOpenCC	= L"Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
+	_wsystem( ( boost::wformat( sIconv ) % sFile % sTmpFile ).str().c_str() );
+	_wsystem( ( boost::wformat( sOpenCC ) % sTmpFile % sFile ).str().c_str() );
 }
 
 int main(int argc, char* argv[])
@@ -86,7 +98,7 @@ int main(int argc, char* argv[])
 				if( oFile.is_open() )
 				{
 					oFile << "<HTML>\n";
-					oFile << "<HEAD><META http-equiv=\"Content-Type\" content=\"text/html; charset=GBK\">\n";
+					oFile << "<HEAD><META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n";
 					oFile << "<BODY>\n";
 					oFile << "<H3 ALIGN=CENTER>" << rBook.m_sTitle << "</H3>\n";
 					oFile << "<H4 ALIGN=CENTER>" << rBook.m_sAuthor << "</H4>\n";
@@ -113,6 +125,9 @@ int main(int argc, char* argv[])
 					oFile << "</BODY></HTML>\n";
 					oFile.close();
 
+					cout << " Convert HTML to UTF-8 TC" << endl;
+					ExternCommand( sBookName, L"tmp" );
+
 					cout << " Book output finished" << endl; 
 				}
 				else
@@ -124,6 +139,3 @@ int main(int argc, char* argv[])
 	}
 	return 0;
 }
-
-// iconv -f GBK -t UTF-8 "file" > "file"
-// Z:\Program\Convert\bin\opencc-0.4.2-win32\opencc-0.4.2>opencc -i a.html -o b.html -c zhs2zhtw_p.ini
