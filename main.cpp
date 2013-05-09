@@ -74,12 +74,15 @@ int main(int argc, char* argv[])
 		{
 			string rHtml = mClient.ReadHtml( mURL->first, mURL->second );
 			auto vBooks = mSite.AnalyzeIndexPage( rHtml );
+			cout << "Found " << vBooks.size() << " books" << endl;
 
 			// write test
 			for( BookIndex& rBook : vBooks )
 			{
-				wstring s = boost::locale::conv::to_utf<wchar_t>( rBook.m_sTitle, "GB2312" ) + L".html";
-				ofstream oFile( s );
+				wstring sBookName = boost::locale::conv::to_utf<wchar_t>( rBook.m_sTitle, "GB2312" ) + L".html";
+				cout << " Start process book <" << sBookName.c_str() << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;
+
+				ofstream oFile( sBookName );
 				if( oFile.is_open() )
 				{
 					oFile << "<HTML>\n";
@@ -108,6 +111,12 @@ int main(int argc, char* argv[])
 					}
 					oFile << "</BODY></HTML>\n";
 					oFile.close();
+
+					cout << " Book output finished" << endl; 
+				}
+				else
+				{
+					 cerr << " Can't open the file to output" << endl;
 				}
 			}
 		}
