@@ -93,6 +93,7 @@ int main(int argc, char* argv[])
 					oFile << "<HR>\n";
 
 					// index
+					oFile << "<A ID=\"INDEX\"><HR></A>\n";
 					for( auto& rLink : rBook.m_vChapter )
 					{
 						oFile << "<div><a href=\"#" << &rLink << "\">" << rLink.first << "</a></siv>\n";
@@ -101,7 +102,7 @@ int main(int argc, char* argv[])
 					// content
 					for( auto& rLink : rBook.m_vChapter )
 					{
-						oFile << "<A ID=\"" << &rLink << "\"><HR></A>\n";
+						oFile << "<HR><H4><A ID=\"" << &rLink << "\">" << rLink.first << "</A></H4>\n";
 
 						auto mCURL = HttpClient::ParseURL( rLink.second );
 						if( mCURL )
@@ -123,3 +124,6 @@ int main(int argc, char* argv[])
 	}
 	return 0;
 }
+
+// iconv -f GBK -t UTF-8 "file" > "file"
+// Z:\Program\Convert\bin\opencc-0.4.2-win32\opencc-0.4.2>opencc -i a.html -o b.html -c zhs2zhtw_p.ini
