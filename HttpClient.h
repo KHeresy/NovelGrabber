@@ -67,7 +67,25 @@ public:
 
 	std::string ReadHtml( const std::string& rServer, const std::string& rPath );
 
+	std::string ReadHtml( const std::string& sURL )
+	{
+		auto pLink = ParseURL( sURL );
+		if( pLink )
+			return ReadHtml( pLink->first, pLink->second );
+
+		return "";
+	}
+
 	bool GetBinaryFile( const std::string& rServer, const std::string& rPath, const std::wstring& rFilename );
+
+	bool GetBinaryFile( const std::string& sURL, const std::wstring& rFilename )
+	{
+		auto pLink = ParseURL( sURL );
+		if( pLink )
+			return GetBinaryFile( pLink->first, pLink->second, rFilename );
+
+		return false;
+	}
 
 public:
 	static boost::optional< std::pair<std::string,std::string> > ParseURL( const std::string& sURL );
