@@ -209,7 +209,7 @@ bool HttpClient::GetBinaryFile( const string& rServer, const string& rPath, cons
 	while( getline( sStream, header ) && header != "\r" )
 		m_sigInfoLog( header );
 
-	std::ofstream outfile( rFilename );
+	std::ofstream outfile( rFilename, ios::binary );
 	auto buf = sStream.rdbuf();
 	outfile << buf;
 	outfile.close();
