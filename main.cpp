@@ -24,7 +24,6 @@ inline std::string toUTF8( const std::string& rS )
 	return boost::locale::conv::to_utf<char>( rS, "GB2312" );
 }
 
-
 inline void ExternCommand( const wstring& sFile, const wstring& sTmpFile )
 {
 	wstring	sIconv	= L"Binary\\libiconv\\iconv.exe -f GBK -t UTF-8 \"%1%\" > \"%2%\"",
@@ -33,8 +32,18 @@ inline void ExternCommand( const wstring& sFile, const wstring& sTmpFile )
 	_wsystem( ( boost::wformat( sOpenCC ) % sTmpFile % sFile ).str().c_str() );
 }
 
+inline void ExternCommand( const string& sFile, const string& sTmpFile )
+{
+	string	sIconv	= "Binary\\libiconv\\iconv.exe -f GBK -t UTF-8 \"%1%\" > \"%2%\"",
+			sOpenCC	= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
+	system( ( boost::format( sIconv ) % sFile % sTmpFile ).str().c_str() );
+	system( ( boost::format( sOpenCC ) % sTmpFile % sFile ).str().c_str() );
+}
+
 int main(int argc, char* argv[])
 {
+	std::locale::global( std::locale("Chinese_China") );
+
 	string	sURL;
 	string	sDir = ".";
 
@@ -91,7 +100,7 @@ int main(int argc, char* argv[])
 			// write test
 			for( BookIndex& rBook : vBooks )
 			{
-				wstring sBookName = boost::locale::conv::to_utf<wchar_t>( rBook.m_sTitle, "GB2312" ) + L".html";
+				wstring sBookName = boost::locale::conv::to_utf<wchar_t>( rBook.m_sTitle + ".html", "GB2312" );
 				cout << " Start process book <" << sBookName.c_str() << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;
 
 				ofstream oFile( sBookName );
