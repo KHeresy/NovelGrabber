@@ -1,0 +1,18 @@
+1. boost::local::conv::to_utf may make some word broken
+    ex: http://www.boost.org/doc/libs/1_52_0/libs/locale/doc/html/charset_handling.html
+
+2. need to use wstring for open file, but need to write via string for unknown reason
+
+3. Now try to use libiconv and opencc command line tools for conversion
+    But the _wsystem command can't work for some char
+    ex: http://www.wenku8.cn/modules/article/reader.php?aid=1213
+
+4. remove internal <ul ...>...</ul> ad
+
+5. download image to local
+
+6. test calibre and kindlegen for image
+
+7. opetional: test libiconv library and opencc library
+
+8. file name converter?
