@@ -67,12 +67,14 @@ public:
 
 	std::string ReadHtml( const std::string& rServer, const std::string& rPath );
 
+	bool GetBinaryFile( const std::string& rServer, const std::string& rPath, const std::wstring& rFilename );
+
 	static boost::optional< std::pair<std::string,std::string> > ParseURL( const std::string& sURL );
 
 	static std::pair<size_t,std::string> FindContentBetweenTag( const std::string& rHtml, const std::pair<std::string,std::string>& rTag, size_t uStartPos = 0 );
 	
 	static boost::optional< std::pair<std::string,std::string> > AnalyzeLink( const std::string& rHtml, size_t uStartPos = 0 );
-
+	
 
 protected:
 	boost::asio::io_service			m_IO_service;
