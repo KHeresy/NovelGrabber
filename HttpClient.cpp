@@ -8,7 +8,7 @@
 using namespace std;
 using namespace boost::asio::ip;
 
-boost::optional< std::pair<size_t,size_t> > HTMLTag::GetData( const std::string& sHtmlSource, size_t uBeginPos )
+boost::optional< pair<size_t,size_t> > HTMLTag::GetData( const std::string& sHtmlSource, size_t uBeginPos )
 {
 	if( m_sTagName != "" )
 	{
@@ -87,6 +87,18 @@ boost::optional< std::pair<size_t,size_t> > HTMLTag::GetData( const std::string&
 		}
 	}
 	return boost::optional< std::pair<size_t,size_t> >();
+}
+
+boost::optional< std::pair<size_t,size_t> > HTMLTag::FindQuoteContent( const std::string& rSource, const char c, size_t uBeginPos )
+{
+	size_t uPos = rSource.find_first_of( "\'\"", uBeginPos );
+	if( uPos != string::npos )
+	{
+		if( uPos > uBeginPos && rSource[ uPos - 1 ] == '\\' )
+		{
+		}
+	}
+	return boost::optional< pair<size_t,size_t> >();
 }
 
 HttpClient::HttpClient() : m_Resolver( m_IO_service )

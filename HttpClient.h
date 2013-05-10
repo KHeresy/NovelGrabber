@@ -33,6 +33,8 @@ public:
 
 	boost::optional< std::pair<size_t,size_t> > GetData( const std::string& sHtmlSource, size_t uBeginPos = 0 );
 
+	boost::optional< std::pair<size_t,size_t> > FindQuoteContent( const std::string& rSourze, const char c, size_t uBeginPos = 0 );
+
 public:
 	static boost::optional< std::pair< HTMLTag, std::pair<size_t,size_t> > > Construct( const std::string& sTagName, std::string& sHtmlSource, size_t uBeginPos = 0 )
 	{
