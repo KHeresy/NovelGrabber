@@ -9,6 +9,7 @@
 using namespace std;
 using namespace boost::asio::ip;
 
+// Functions of HTNLTag
 boost::optional< pair<size_t,size_t> > HTMLTag::GetData( const std::string& sHtmlSource, size_t uBeginPos )
 {
 	if( m_sTagName != "" )
@@ -102,6 +103,45 @@ boost::optional< std::pair<size_t,size_t> > HTMLTag::FindQuoteContent( const std
 	return boost::optional< pair<size_t,size_t> >();
 }
 
+// Functions of HTMLParsr
+void HTMLParser::FindTag( const std::string& rHtml, const std::string& rTag, const std::map< std::string, boost::optional<std::string> >& rAttribute, size_t uStartPos )
+{
+	std::string sTagBegin	= "<" + rTag,
+				sTagEnd		= "</" + rTag + ">";
+	
+	// find the position of tag
+	size_t uPos1 = rHtml.find( sTagBegin, uStartPos );
+	if( uPos1 == std::string::npos )
+	{
+		return;
+	}
+	
+	// find the end of the start tag
+	size_t uPos2 = rHtml.find( ">", uPos1 + sTagBegin.length() );
+	if( uPos2 == std::string::npos )
+	{
+		return;
+	}
+
+	if( rAttribute.size() > 0 )
+	{
+		// get attributes
+		std::string sAttributes = rHtml.substr( uPos1 + sTagBegin.length(), uPos2 - ( uPos1 + sTagBegin.length() ) );
+
+		// TODO: check attribute
+	}
+
+	// TODO: check nested tag?
+
+	// find close tag
+	size_t uPos3 = rHtml.find( sTagEnd, uPos2 + 1 );
+	if( uPos3 != std::string::npos )
+	{
+		std::string sContent = rHtml.substr( uPos2 + 1, uPos3 - uPos2 - 1 );
+	}
+}
+
+// Functions of HttpClient
 HttpClient::HttpClient() : m_Resolver( m_IO_service )
 {
 }
@@ -150,43 +190,6 @@ boost::optional< pair<string,string> > HttpClient::ParseURL( const string& sURL 
 		}
 	}
 	return boost::optional< pair<string,string> >();
-}
-
-void HTMLParser::FindTag( const std::string& rHtml, const std::string& rTag, const std::map< std::string, boost::optional<std::string> >& rAttribute, size_t uStartPos )
-{
-	std::string sTagBegin	= "<" + rTag,
-				sTagEnd		= "</" + rTag + ">";
-	
-	// find the position of tag
-	size_t uPos1 = rHtml.find( sTagBegin, uStartPos );
-	if( uPos1 == std::string::npos )
-	{
-		return;
-	}
-	
-	// find the end of the start tag
-	size_t uPos2 = rHtml.find( ">", uPos1 + sTagBegin.length() );
-	if( uPos2 == std::string::npos )
-	{
-		return;
-	}
-
-	if( rAttribute.size() > 0 )
-	{
-		// get attributes
-		std::string sAttributes = rHtml.substr( uPos1 + sTagBegin.length(), uPos2 - ( uPos1 + sTagBegin.length() ) );
-
-		// TODO: check attribute
-	}
-
-	// TODO: check nested tag?
-
-	// find close tag
-	size_t uPos3 = rHtml.find( sTagEnd, uPos2 + 1 );
-	if( uPos3 != std::string::npos )
-	{
-		std::string sContent = rHtml.substr( uPos2 + 1, uPos3 - uPos2 - 1 );
-	}
 }
 
 std::pair<size_t,string> HttpClient::FindContentBetweenTag( const string& rHtml, const pair<string,string>& rTag, size_t uStartPos )
