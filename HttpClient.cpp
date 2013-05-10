@@ -1,3 +1,4 @@
+#include <vector>
 #include <sstream>
 
 #include <boost/algorithm/string.hpp>
@@ -6,6 +7,87 @@
 
 using namespace std;
 using namespace boost::asio::ip;
+
+boost::optional< std::pair<size_t,size_t> > HTMLTag::GetData( const std::string& sHtmlSource, size_t uBeginPos )
+{
+	if( m_sTagName != "" )
+	{
+		string sTagBegin = "<" + m_sTagName;
+
+		// find the position of tag
+		size_t uStartPos = sHtmlSource.find( sTagBegin, uBeginPos );
+		if( uStartPos != string::npos )
+		{
+			// find the end of the start tag
+			size_t uPos1 = uStartPos + sTagBegin.length();
+			size_t uPos2 = sHtmlSource.find( ">", uPos1 );
+			if( uPos2 != string::npos )
+			{
+				// process attribute
+				string sAttribStr = sHtmlSource.substr( uPos1, uPos2 - uPos1 );
+				boost::trim( sAttribStr );
+				size_t uStartPos = 0;
+				while( true )
+				{
+					size_t uPos = sAttribStr.find_first_of( " =", uStartPos );
+					if( uPos == string::npos )
+						break;
+
+					string sName = sAttribStr.substr( uStartPos, uPos - uStartPos );
+					if( sAttribStr[uPos] == '=' )
+					{
+						if( sAttribStr[uPos+1] == '\"' )
+						{
+							size_t uEnd = sAttribStr.find_first_of( '\"', uPos + 2 );
+							if( uEnd == string::npos )
+							{
+							}
+							else
+							{
+								m_mAttributes[ sName ] = sAttribStr.substr( uPos + 2, uEnd - uPos - 2 );
+								uStartPos = uEnd + 1;
+							}
+						}
+						else
+						{
+							size_t uEnd = sAttribStr.find_first_of( ' ', uPos + 1 );
+							if( uEnd == string::npos )
+							{
+								m_mAttributes[ sName ] = sAttribStr.substr( uPos + 1 );
+								break;
+							}
+							else
+							{
+								m_mAttributes[ sName ] = sAttribStr.substr( uPos + 1, uEnd - uPos - 1 );
+								uStartPos = uEnd + 1;
+							}
+						}
+					}
+					else
+					{
+						m_mAttributes[ sName ];
+						uStartPos = uPos + 1;
+					}
+				}
+
+				// try to find the close tag only if this tag is not self-closed
+				if( sHtmlSource[uPos2-1] != '/' )
+				{
+					string sTagEnd		= "</" + m_sTagName + ">";
+					size_t uPos3 = sHtmlSource.find( sTagEnd, uPos2 + 1 );
+					if( uPos3 != std::string::npos )
+					{
+						m_sContent = sHtmlSource.substr( uPos2 + 1, uPos3 - uPos2 - 1 );
+						uPos2 = uPos3 + sTagEnd.size() - 1;
+					}
+				}
+
+				return make_pair( uStartPos, uPos2 );
+			}
+		}
+	}
+	return boost::optional< std::pair<size_t,size_t> >();
+}
 
 HttpClient::HttpClient() : m_Resolver( m_IO_service )
 {
@@ -79,7 +161,7 @@ boost::optional< pair<string,string> > HttpClient::ParseURL( const string& sURL 
 	return boost::optional< pair<string,string> >();
 }
 
-void HttpClient::FindTag( const std::string& rHtml, const std::string& rTag, const std::map< std::string, boost::optional<std::string> >& rAttribute, size_t uStartPos )
+void HTMLParser::FindTag( const std::string& rHtml, const std::string& rTag, const std::map< std::string, boost::optional<std::string> >& rAttribute, size_t uStartPos )
 {
 	std::string sTagBegin	= "<" + rTag,
 				sTagEnd		= "</" + rTag + ">";
