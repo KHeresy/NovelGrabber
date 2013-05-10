@@ -44,6 +44,10 @@ int main(int argc, char* argv[])
 {
 	std::locale::global( std::locale("Chinese_China") );
 
+	string sContent = "<HTML><BODY><A target=_blank xxx href=\"x\"><IMG src=\"x\"></A></BODY></HTML>";
+	auto pRes = HTMLTag::Construct( "A", sContent );
+
+
 	string	sURL;
 	string	sDir = ".";
 
@@ -93,8 +97,8 @@ int main(int argc, char* argv[])
 		Wenku8Cn mSite;
 		if( mSite.CheckServer( mURL->first ) )
 		{
-			string rHtml = mClient.ReadHtml( mURL->first, mURL->second );
-			auto vBooks = mSite.AnalyzeIndexPage( rHtml );
+			boost::optional<string> rHtml = mClient.ReadHtml( mURL->first, mURL->second );
+			auto vBooks = mSite.AnalyzeIndexPage( *rHtml );
 			cout << "Found " << vBooks.size() << " books" << endl;
 
 			// write test
@@ -128,7 +132,7 @@ int main(int argc, char* argv[])
 						auto mCURL = HttpClient::ParseURL( rLink.second );
 						if( mCURL )
 						{
-							oFile << mSite.GetChapterContent( mClient.ReadHtml( mCURL->first, mCURL->second ) );
+							oFile << mSite.GetChapterContent( *(mClient.ReadHtml( mCURL->first, mCURL->second ) ) );
 						}
 					}
 					oFile << "</BODY></HTML>\n";

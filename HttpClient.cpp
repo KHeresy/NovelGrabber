@@ -141,12 +141,57 @@ void HTMLParser::FindTag( const std::string& rHtml, const std::string& rTag, con
 	}
 }
 
+std::pair<size_t,string> HTMLParser::FindContentBetweenTag( const string& rHtml, const pair<string,string>& rTag, size_t uStartPos )
+{
+	size_t uPos1 = rHtml.find( rTag.first, uStartPos );
+	if( uPos1 != string::npos )
+	{
+		size_t uPos2 = rHtml.find( rTag.second, uPos1 );
+		uPos1 = uPos1 + rTag.first.length();
+
+		std::string sContent = rHtml.substr( uPos1, uPos2 - uPos1 );
+		boost::algorithm::trim( sContent );
+		return make_pair( uPos1, sContent );
+	}
+	return make_pair( string::npos, "" );
+}
+
+boost::optional< pair<string,string> > HTMLParser::AnalyzeLink( const std::string& rHtml, size_t uStartPos )
+{
+	size_t uPos1 = rHtml.find( "<a ", uStartPos );
+	if( uPos1 != string::npos )
+	{
+		size_t uPos2 = rHtml.find( "href=\"", uPos1 );
+		if( uPos2 != string::npos )
+		{
+			uPos2 += 6;
+			uPos1 = rHtml.find( "\"", uPos2 );
+			if( uPos1 != string::npos )
+			{
+				string sLinkUrl = rHtml.substr( uPos2, uPos1 - uPos2 );
+
+				uPos1 = rHtml.find( ">", uPos1 );
+				if( uPos1 != string::npos )
+				{
+					uPos1 += 1;
+					uPos2 = rHtml.find( "</a>", uPos1 );
+					string sLinkText = rHtml.substr( uPos1, uPos2 - uPos1 );
+					boost::algorithm::trim( sLinkText );
+
+					return boost::optional< pair<string,string> >( make_pair( sLinkText, sLinkUrl ) );
+				}
+			}
+		}
+	}
+	return boost::optional< pair<string,string> >();
+}
+
 // Functions of HttpClient
 HttpClient::HttpClient() : m_Resolver( m_IO_service )
 {
 }
 
-string HttpClient::ReadHtml( const string& rServer, const string& rPath )
+boost::optional<string> HttpClient::ReadHtml( const string& rServer, const string& rPath )
 {
 	// code reference to http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/example/iostreams/http_client.cpp
 	tcp::iostream sStream;
@@ -158,6 +203,7 @@ string HttpClient::ReadHtml( const string& rServer, const string& rPath )
 		oStream << sStream.rdbuf();
 		return oStream.str();
 	}
+	return boost::optional<string>();
 }
 
 bool HttpClient::GetBinaryFile( const string& rServer, const string& rPath, const wstring& rFilename )
@@ -187,51 +233,6 @@ boost::optional< pair<string,string> > HttpClient::ParseURL( const string& sURL 
 		{
 			auto uPos = sURL.find_first_of( "/", 8 );
 			return boost::optional< pair<string,string> >( make_pair( sURL.substr( 7, uPos - 7 ), sURL.substr( uPos ) ) );
-		}
-	}
-	return boost::optional< pair<string,string> >();
-}
-
-std::pair<size_t,string> HttpClient::FindContentBetweenTag( const string& rHtml, const pair<string,string>& rTag, size_t uStartPos )
-{
-	size_t uPos1 = rHtml.find( rTag.first, uStartPos );
-	if( uPos1 != string::npos )
-	{
-		size_t uPos2 = rHtml.find( rTag.second, uPos1 );
-		uPos1 = uPos1 + rTag.first.length();
-
-		std::string sContent = rHtml.substr( uPos1, uPos2 - uPos1 );
-		boost::algorithm::trim( sContent );
-		return make_pair( uPos1, sContent );
-	}
-	return make_pair( string::npos, "" );
-}
-
-boost::optional< pair<string,string> > HttpClient::AnalyzeLink( const std::string& rHtml, size_t uStartPos )
-{
-	size_t uPos1 = rHtml.find( "<a ", uStartPos );
-	if( uPos1 != string::npos )
-	{
-		size_t uPos2 = rHtml.find( "href=\"", uPos1 );
-		if( uPos2 != string::npos )
-		{
-			uPos2 += 6;
-			uPos1 = rHtml.find( "\"", uPos2 );
-			if( uPos1 != string::npos )
-			{
-				string sLinkUrl = rHtml.substr( uPos2, uPos1 - uPos2 );
-
-				uPos1 = rHtml.find( ">", uPos1 );
-				if( uPos1 != string::npos )
-				{
-					uPos1 += 1;
-					uPos2 = rHtml.find( "</a>", uPos1 );
-					string sLinkText = rHtml.substr( uPos1, uPos2 - uPos1 );
-					boost::algorithm::trim( sLinkText );
-
-					return boost::optional< pair<string,string> >( make_pair( sLinkText, sLinkUrl ) );
-				}
-			}
 		}
 	}
 	return boost::optional< pair<string,string> >();

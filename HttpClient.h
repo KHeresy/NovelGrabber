@@ -54,6 +54,10 @@ public:
 
 public:
 	static void FindTag( const std::string& rHtml, const std::string& rTag, const std::map< std::string, boost::optional<std::string> >& rAttribute, size_t uStartPos = 0 );
+
+	static std::pair<size_t,std::string> FindContentBetweenTag( const std::string& rHtml, const std::pair<std::string,std::string>& rTag, size_t uStartPos = 0 );
+
+	static boost::optional< std::pair<std::string,std::string> > AnalyzeLink( const std::string& rHtml, size_t uStartPos = 0 );
 };
 
 class HttpClient
@@ -65,15 +69,15 @@ public:
 public:
 	HttpClient();
 
-	std::string ReadHtml( const std::string& rServer, const std::string& rPath );
+	boost::optional<std::string> ReadHtml( const std::string& rServer, const std::string& rPath );
 
-	std::string ReadHtml( const std::string& sURL )
+	boost::optional<std::string> ReadHtml( const std::string& sURL )
 	{
 		auto pLink = ParseURL( sURL );
 		if( pLink )
 			return ReadHtml( pLink->first, pLink->second );
 
-		return "";
+		return boost::optional<std::string>();
 	}
 
 	bool GetBinaryFile( const std::string& rServer, const std::string& rPath, const std::wstring& rFilename );
@@ -89,10 +93,6 @@ public:
 
 public:
 	static boost::optional< std::pair<std::string,std::string> > ParseURL( const std::string& sURL );
-
-	static std::pair<size_t,std::string> FindContentBetweenTag( const std::string& rHtml, const std::pair<std::string,std::string>& rTag, size_t uStartPos = 0 );
-	
-	static boost::optional< std::pair<std::string,std::string> > AnalyzeLink( const std::string& rHtml, size_t uStartPos = 0 );
 
 protected:
 	boost::asio::io_service			m_IO_service;

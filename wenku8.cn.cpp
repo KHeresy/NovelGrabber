@@ -30,11 +30,11 @@ std::vector<BookIndex> Wenku8Cn::AnalyzeIndexPage( std::string& rHtmlContent )
 	string sTitle, sAuthor;
 
 	// find title and author
-	auto pTitle = HttpClient::FindContentBetweenTag( rHtmlContent, m_TitleTag );
+	auto pTitle = HTMLParser::FindContentBetweenTag( rHtmlContent, m_TitleTag );
 	if( pTitle.first != string::npos )
 		sTitle	= pTitle.second;
 
-	auto pAuthor = HttpClient::FindContentBetweenTag( rHtmlContent, m_AuthorTag );
+	auto pAuthor = HTMLParser::FindContentBetweenTag( rHtmlContent, m_AuthorTag );
 		sAuthor = pAuthor.second;
 
 	// find all books' title
@@ -42,7 +42,7 @@ std::vector<BookIndex> Wenku8Cn::AnalyzeIndexPage( std::string& rHtmlContent )
 	size_t uPos = 0;
 	while( true )
 	{
-		auto pBook = HttpClient::FindContentBetweenTag( rHtmlContent, m_BookTitleTag, uPos );
+		auto pBook = HTMLParser::FindContentBetweenTag( rHtmlContent, m_BookTitleTag, uPos );
 		if( pBook.first != string::npos )
 		{
 			vBooks.push_back( pBook );
@@ -73,7 +73,7 @@ std::vector<BookIndex> Wenku8Cn::AnalyzeIndexPage( std::string& rHtmlContent )
 		// get all chapter
 		while( true )
 		{
-			auto pLink = HttpClient::FindContentBetweenTag( rHtmlContent, m_BookChapterTag, uPos1 );
+			auto pLink = HTMLParser::FindContentBetweenTag( rHtmlContent, m_BookChapterTag, uPos1 );
 			if( pLink.first == string::npos || pLink.first > uPos2 )
 			{
 				break;
@@ -83,7 +83,7 @@ std::vector<BookIndex> Wenku8Cn::AnalyzeIndexPage( std::string& rHtmlContent )
 				if( pLink.second == "&nbsp;" )
 					break;
 
-				auto slink = HttpClient::AnalyzeLink( pLink.second );
+				auto slink = HTMLParser::AnalyzeLink( pLink.second );
 				if( slink )
 				{
 					mBook.m_vChapter.push_back( *slink );
@@ -98,7 +98,7 @@ std::vector<BookIndex> Wenku8Cn::AnalyzeIndexPage( std::string& rHtmlContent )
 
 string Wenku8Cn::GetChapterContent( const string& rHtml )
 {
-	auto pContent = HttpClient::FindContentBetweenTag( rHtml, m_ContentTag );
+	auto pContent = HTMLParser::FindContentBetweenTag( rHtml, m_ContentTag );
 	if( pContent.first != string::npos )
 		return pContent.second;
 
