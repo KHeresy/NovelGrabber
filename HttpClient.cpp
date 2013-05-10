@@ -111,54 +111,13 @@ string HttpClient::ReadHtml( const string& rServer, const string& rPath )
 	// code reference to http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/example/iostreams/http_client.cpp
 	tcp::iostream sStream;
 	sStream.expires_from_now( boost::posix_time::seconds( 60 ) );
-
-	#pragma region Send request
-	// Establish a connection to the server.
-	m_sigInfoLog( "Connect to " + rServer );
-	sStream.connect( rServer, "http" );
-	if( !sStream )
+	if( SendRequest( rServer, rPath, sStream ) && GetHttpHeader( sStream ) )
 	{
-		m_sigErrorLog( "Unable to connect: " + sStream.error().message() );
-		return "";
+		// Write the remaining data to output.
+		stringstream oStream;
+		oStream << sStream.rdbuf();
+		return oStream.str();
 	}
-
-	// Send the request.
-	m_sigInfoLog( "Request paget " + rPath );
-	sStream << "GET " << rPath << " HTTP/1.0\r\n";
-	sStream << "Host: " << rServer << "\r\n";
-	sStream << "Accept: */*\r\n" << "Connection: close\r\n\r\n";
-	#pragma endregion
-
-	#pragma region recive data
-	// Check that response is OK.
-	string sHttpVersion;
-	sStream >> sHttpVersion;
-	unsigned int uCode;
-	sStream >> uCode;
-	string sMssage;
-	getline( sStream, sMssage );
-	m_sigInfoLog( "Recive data: " + sHttpVersion + " / " + sMssage );
-	if( !sStream || sHttpVersion.substr(0, 5) != "HTTP/" )
-	{
-		m_sigErrorLog( "Invalid response" );
-		return "";
-	}
-	if( uCode != 200 )
-	{
-		m_sigErrorLog( "Response returned with status code " + uCode );
-		return "";
-	}
-
-	// Process the response headers, which are terminated by a blank line.
-	string header;
-	while( getline( sStream, header ) && header != "\r" )
-		m_sigInfoLog( header );
-
-	// Write the remaining data to output.
-	stringstream oStream;
-	oStream << sStream.rdbuf();
-	return oStream.str();
-	#pragma endregion
 }
 
 bool HttpClient::GetBinaryFile( const string& rServer, const string& rPath, const wstring& rFilename )
@@ -166,55 +125,18 @@ bool HttpClient::GetBinaryFile( const string& rServer, const string& rPath, cons
 	// code reference to http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/example/iostreams/http_client.cpp
 	tcp::iostream sStream;
 	sStream.expires_from_now( boost::posix_time::seconds( 60 ) );
-
-	#pragma region Send request
-	// Establish a connection to the server.
-	m_sigInfoLog( "Connect to " + rServer );
-	sStream.connect( rServer, "http" );
-	if( !sStream )
+	if( SendRequest( rServer, rPath, sStream ) && GetHttpHeader( sStream ) )
 	{
-		m_sigErrorLog( "Unable to connect: " + sStream.error().message() );
-		return "";
+		std::ofstream outfile( rFilename, ios::binary );
+		if( outfile.is_open() )
+		{
+			auto buf = sStream.rdbuf();
+			outfile << buf;
+			outfile.close();
+			return true;
+		}
 	}
-
-	// Send the request.
-	m_sigInfoLog( "Request paget " + rPath );
-	sStream << "GET " << rPath << " HTTP/1.0\r\n";
-	sStream << "Host: " << rServer << "\r\n";
-	sStream << "Accept: */*\r\n" << "Connection: close\r\n\r\n";
-	#pragma endregion
-
-	#pragma region recive data
-	// Check that response is OK.
-	string sHttpVersion;
-	sStream >> sHttpVersion;
-	unsigned int uCode;
-	sStream >> uCode;
-	string sMssage;
-	getline( sStream, sMssage );
-	m_sigInfoLog( "Recive data: " + sHttpVersion + " / " + sMssage );
-	if( !sStream || sHttpVersion.substr(0, 5) != "HTTP/" )
-	{
-		m_sigErrorLog( "Invalid response" );
-		return "";
-	}
-	if( uCode != 200 )
-	{
-		m_sigErrorLog( "Response returned with status code " + uCode );
-		return "";
-	}
-
-	// Process the response headers, which are terminated by a blank line.
-	string header;
-	while( getline( sStream, header ) && header != "\r" )
-		m_sigInfoLog( header );
-
-	std::ofstream outfile( rFilename, ios::binary );
-	auto buf = sStream.rdbuf();
-	outfile << buf;
-	outfile.close();
-
-	#pragma endregion
+	return false;
 }
 
 boost::optional< pair<string,string> > HttpClient::ParseURL( const string& sURL )
@@ -310,4 +232,53 @@ boost::optional< pair<string,string> > HttpClient::AnalyzeLink( const std::strin
 		}
 	}
 	return boost::optional< pair<string,string> >();
+}
+
+bool HttpClient::SendRequest( const string& rServer, const string& rPath, boost::asio::ip::tcp::iostream& rStream )
+{
+	// Establish a connection to the server.
+	m_sigInfoLog( "Connect to " + rServer );
+	rStream.connect( rServer, "http" );
+	if( !rStream )
+	{
+		m_sigErrorLog( "Unable to connect: " + rStream.error().message() );
+		return false;
+	}
+
+	// Send the request.
+	m_sigInfoLog( "Request paget " + rPath );
+	rStream << "GET " << rPath << " HTTP/1.0\r\n";
+	rStream << "Host: " << rServer << "\r\n";
+	rStream << "Accept: */*\r\n" << "Connection: close\r\n\r\n";
+
+	return true;
+}
+
+bool HttpClient::GetHttpHeader( boost::asio::ip::tcp::iostream& rStream )
+{
+	// Check that response is OK.
+	string sHttpVersion;
+	rStream >> sHttpVersion;
+	unsigned int uCode;
+	rStream >> uCode;
+	string sMssage;
+	getline( rStream, sMssage );
+	m_sigInfoLog( "Recive data: " + sHttpVersion + " / " + sMssage );
+	if( !rStream || sHttpVersion.substr(0, 5) != "HTTP/" )
+	{
+		m_sigErrorLog( "Invalid response" );
+		return false;
+	}
+	if( uCode != 200 )
+	{
+		m_sigErrorLog( "Response returned with status code " + uCode );
+		return false;
+	}
+
+	// Process the response headers, which are terminated by a blank line.
+	string header;
+	while( getline( rStream, header ) && header != "\r" )
+		m_sigInfoLog( header );
+
+	return true;
 }
