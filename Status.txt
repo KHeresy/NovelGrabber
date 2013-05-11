@@ -1,5 +1,5 @@
 1. boost::local::conv::to_utf may make some word broken
-    ex: http://www.boost.org/doc/libs/1_52_0/libs/locale/doc/html/charset_handling.html
+    ex: http://www.wenku8.cn/novel/0/446/29604.htm
 
 2. need to use wstring for open file, but need to write via string for unknown reason
 
