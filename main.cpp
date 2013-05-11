@@ -1,6 +1,7 @@
 #pragma region Header Files
 
 // STL Header
+#include <codecvt>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -19,9 +20,9 @@
 
 using namespace std;
 
-inline std::string toUTF8( const std::string& rS )
+inline std::wstring toUTF8( const std::string& rS )
 {
-	return boost::locale::conv::to_utf<char>( rS, "GB2312" );
+	return boost::locale::conv::to_utf<wchar_t>( rS, "GBK" );
 }
 
 inline void ExternCommand( const wstring& sFile, const wstring& sTmpFile )
@@ -42,11 +43,10 @@ inline void ExternCommand( const string& sFile, const string& sTmpFile )
 
 int main(int argc, char* argv[])
 {
-	std::locale::global( std::locale("Chinese_China") );
-
-	string sContent = "<HTML><BODY><A target=_blank xxx href=\"x\"><IMG src=\"x\"></A></BODY></HTML>";
-	auto pRes = HTMLTag::Construct( "A", sContent );
-
+	locale locUTF8( locale(""), new codecvt_utf8<wchar_t>() );
+	locale::global( locUTF8 );
+	cout.imbue( locUTF8 );
+	wcout.imbue( locUTF8 );
 
 	string	sURL;
 	string	sDir = ".";
@@ -105,42 +105,44 @@ int main(int argc, char* argv[])
 			for( BookIndex& rBook : vBooks )
 			{
 				wstring sBookName = boost::locale::conv::to_utf<wchar_t>( rBook.m_sTitle + ".html", "GB2312" );
-				cout << " Start process book <" << sBookName.c_str() << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;
+				wcout << L" Start process book <" << sBookName << L">, with " << rBook.m_vChapter.size() << L" chapters" << endl;
 
-				ofstream oFile( sBookName );
+				wofstream oFile( sBookName );
+				oFile.imbue( locUTF8 );
 				if( oFile.is_open() )
 				{
 					oFile << "<HTML>\n";
 					oFile << "<HEAD><META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n";
 					oFile << "<BODY>\n";
-					oFile << "<H3 ALIGN=CENTER>" << rBook.m_sTitle << "</H3>\n";
-					oFile << "<H4 ALIGN=CENTER>" << rBook.m_sAuthor << "</H4>\n";
+					oFile << "<H3 ALIGN=CENTER>" << toUTF8( rBook.m_sTitle ) << "</H3>\n";
+					oFile << "<H4 ALIGN=CENTER>" << toUTF8( rBook.m_sAuthor ) << "</H4>\n";
 
 					// index
 					oFile << "<A ID=\"INDEX\"><HR></A>\n";
 					for( auto& rLink : rBook.m_vChapter )
 					{
-						oFile << "<div><a href=\"#" << &rLink << "\">" << rLink.first << "</a></siv>\n";
+						oFile << "<div><a href=\"#" << &rLink << "\">" << toUTF8( rLink.first ) << "</a></siv>\n";
 					}
 
 					// content
 					for( auto& rLink : rBook.m_vChapter )
 					{
-						oFile << "<HR><H4><A ID=\"" << &rLink << "\">" << rLink.first << "</A></H4>\n";
+						oFile << "<HR><H4><A ID=\"" << &rLink << "\">" << toUTF8( rLink.first ) << "</A></H4>\n";
+						cout << "  > " << rLink.second << endl;
 
-						auto mCURL = HttpClient::ParseURL( rLink.second );
-						if( mCURL )
+						auto sHTML = mClient.ReadHtml( rLink.second );
+						if( sHTML )
 						{
-							oFile << mSite.GetChapterContent( *(mClient.ReadHtml( mCURL->first, mCURL->second ) ) );
+							oFile << toUTF8( mSite.GetChapterContent( *sHTML ) );
 						}
 					}
 					oFile << "</BODY></HTML>\n";
 					oFile.close();
 
-					cout << " Convert HTML to UTF-8 TC" << endl;
-					ExternCommand( sBookName, L"tmp" );
+					cout << "  Convert HTML to UTF-8 TC" << endl;
+					//ExternCommand( sBookName, L"tmp" );
 
-					cout << " Book output finished" << endl; 
+					cout << "  Book output finished" << endl; 
 				}
 				else
 				{
