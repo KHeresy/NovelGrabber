@@ -115,7 +115,6 @@ int main(int argc, char* argv[])
 					oFile << "<BODY>\n";
 					oFile << "<H3 ALIGN=CENTER>" << rBook.m_sTitle << "</H3>\n";
 					oFile << "<H4 ALIGN=CENTER>" << rBook.m_sAuthor << "</H4>\n";
-					oFile << "<HR>\n";
 
 					// index
 					oFile << "<A ID=\"INDEX\"><HR></A>\n";
