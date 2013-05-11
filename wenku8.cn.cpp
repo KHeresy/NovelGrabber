@@ -3,6 +3,7 @@
 
 // Boost Header
 #include <boost/assign/list_of.hpp>
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
 
@@ -100,7 +101,12 @@ string Wenku8Cn::GetChapterContent( const string& rHtml )
 {
 	auto pContent = HTMLParser::FindContentBetweenTag( rHtml, m_ContentTag );
 	if( pContent.first != string::npos )
+	{
+		boost::algorithm::replace_all( pContent.second, "<ul ", "<!--" );
+		boost::algorithm::replace_all( pContent.second, "</ul>", " -->" );
+
 		return pContent.second;
+	}
 
 	return "";
 }
