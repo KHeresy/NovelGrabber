@@ -16,6 +16,7 @@ Wenku8Cn::Wenku8Cn()
 	m_BookTitleTag		= make_pair( "<td colspan=\"4\" class=\"vcss\">",	"</td>" );
 	m_BookChapterTag	= make_pair( "<td class=\"ccss\">",					"</td>" );
 	m_ContentTag		= make_pair( "<div id=\"content\">",				"\n</div>" );
+	m_ImageTag			= make_pair( "<img src=\"",							"\" border=\"0\" class=\"imagecontent\">" );
 }
 
 bool Wenku8Cn::CheckServer( const std::string& rServer )
@@ -109,4 +110,22 @@ string Wenku8Cn::GetChapterContent( const string& rHtml )
 	}
 
 	return "";
+}
+
+vector< pair<size_t,string> > Wenku8Cn::FindAllImage( const string& rHTML, size_t uPos )
+{
+	vector< pair<size_t,string> > vRes;
+	size_t uStartPos = uPos;
+	while( true )
+	{
+		auto pImg = HTMLParser::FindContentBetweenTag( rHTML, m_ImageTag, uStartPos );
+		if( pImg.first == string::npos )
+			break;
+		else
+		{
+			vRes.push_back( pImg );
+			uStartPos = pImg.first + pImg.second.size() + m_ImageTag.second.size();
+		}
+	}
+	return vRes;
 }

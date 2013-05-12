@@ -178,6 +178,19 @@ int main(int argc, char* argv[])
 						auto sHTML = mClient.ReadHtml( rLink.second );
 						if( sHTML )
 						{
+							auto vImg = mSite.FindAllImage( *sHTML );
+							if( vImg.size() > 0 )
+							{
+								for( auto& rImg : vImg )
+								{
+									auto sFile = HttpClient::GetFilename( rImg.second );
+									if( sFile )
+									{
+										wstring sFilename = boost::locale::conv::utf_to_utf<wchar_t>( *sFile );
+										mClient.GetBinaryFile( rImg.second, sFilename );
+									}
+								}
+							}
 							oFile << toUTF8( mSite.GetChapterContent( *sHTML ) );
 						}
 					}

@@ -26,6 +26,8 @@ public:
 
 	std::string GetChapterContent( const std::string& rUrl );
 
+	std::vector< std::pair<size_t,std::string> > FindAllImage( const std::string& rHTML, size_t uPos = 0 );
+
 protected:
 	std::set<std::string> m_SiteList;
 
@@ -34,5 +36,6 @@ protected:
 	std::pair<std::string,std::string>	m_BookTitleTag;
 	std::pair<std::string,std::string>	m_BookChapterTag;
 	std::pair<std::string,std::string>	m_ContentTag;
+	std::pair<std::string,std::string>	m_ImageTag;
 };
 

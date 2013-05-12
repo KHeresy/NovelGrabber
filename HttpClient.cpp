@@ -238,6 +238,15 @@ boost::optional< pair<string,string> > HttpClient::ParseURL( const string& sURL 
 	return boost::optional< pair<string,string> >();
 }
 
+boost::optional<std::string> HttpClient::GetFilename( const std::string& sURL )
+{
+	size_t uPos = sURL.find_last_of( '/' );
+	if( uPos != string::npos && uPos != sURL.size() - 1 )
+		return sURL.substr( uPos + 1 );
+
+	return boost::optional<string>();
+}
+
 bool HttpClient::SendRequest( const string& rServer, const string& rPath, boost::asio::ip::tcp::iostream& rStream )
 {
 	// Establish a connection to the server.

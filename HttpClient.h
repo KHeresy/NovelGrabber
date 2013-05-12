@@ -93,6 +93,7 @@ public:
 
 public:
 	static boost::optional< std::pair<std::string,std::string> > ParseURL( const std::string& sURL );
+	static boost::optional< std::string > GetFilename( const std::string& sURL );
 
 protected:
 	boost::asio::io_service			m_IO_service;
