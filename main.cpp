@@ -25,10 +25,11 @@ using namespace std;
 
 // global object
 locale g_locUTF8( locale(""), new codecvt_utf8<wchar_t>() );
+boost::filesystem::path g_sOutPath = boost::filesystem::current_path();
 
 inline std::string GetTmpFileName()
 {
-	return ( boost::format( "%1%" ) % chrono::duration_cast<chrono::microseconds>( chrono::system_clock::now().time_since_epoch() ).count() ).str();
+	return ( g_sOutPath / ( boost::format( "%1%" ) % chrono::duration_cast<chrono::microseconds>( chrono::system_clock::now().time_since_epoch() ).count() ).str() ).string();
 }
 
 inline std::wstring toUTF8( const std::string& rS )
@@ -68,7 +69,7 @@ inline std::wstring ConvertSC2TC( const std::wstring& sText )
 	return sResult;
 }
 
-inline void ExternCommand( const wstring& sFile )
+inline void ExternCommand( const string& sFile )
 {
 	static string	sOpenCC	= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
 
@@ -93,8 +94,10 @@ int main(int argc, char* argv[])
 	cout.imbue( g_locUTF8 );
 	wcout.imbue( g_locUTF8 );
 
+	bool	bNoDLImage;
 	string	sURL;
-	string	sDir = ".";
+	boost::filesystem::path	sDir;
+	boost::filesystem::path	sImage = "images";
 
 	#pragma region Program Options
 	{
@@ -103,9 +106,10 @@ int main(int argc, char* argv[])
 		// define program options
 		BPO::options_description bpoOptions( "Command Line Options" );
 		bpoOptions.add_options()
-			( "help,H",		BPO::bool_switch()->notifier( [&bpoOptions]( bool bH ){ if( bH ){ std::cout << bpoOptions << std::endl; exit(0); } } ),	"Help message" )
-			( "url,U",		BPO::value(&sURL)->value_name("Web_Link"),		"The link of index page." )
-			( "output,O",	BPO::value(&sDir)->value_name("output_dir"),	"Directory to save output files" );
+			( "help,H",			BPO::bool_switch()->notifier( [&bpoOptions]( bool bH ){ if( bH ){ std::cout << bpoOptions << std::endl; exit(0); } } ),	"Help message" )
+			( "url,U",			BPO::value(&sURL)->value_name("Web_Link"),							"The link of index page." )
+			( "output,O",		BPO::value(&sDir)->value_name("output_dir")->default_value("."),	"Directory to save output files" )
+			( "nodl__image",	BPO::bool_switch(&bNoDLImage)->default_value(false),				"Not download image" );
 
 		// prase
 		try
@@ -135,6 +139,14 @@ int main(int argc, char* argv[])
 	}
 	#pragma endregion
 
+	// check directory
+	g_sOutPath = sDir;
+	if( !boost::filesystem::exists( g_sOutPath ) )
+		boost::filesystem::create_directory( g_sOutPath );
+	if( !bNoDLImage && !boost::filesystem::exists( g_sOutPath / sImage ) )
+		boost::filesystem::create_directory( g_sOutPath / sImage );
+	wcout << "Output to " << g_sOutPath << endl;
+
 	HttpClient mClient;
 	auto mURL = HttpClient::ParseURL( sURL );
 	if( mURL )
@@ -152,7 +164,7 @@ int main(int argc, char* argv[])
 				wstring sBookName = ConvertSC2TC( boost::locale::conv::to_utf<wchar_t>( rBook.m_sTitle + ".html", "GB2312" ) );
 				wcout << " Start process book <" << sBookName << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;
 
-				wofstream oFile( sBookName );
+				wofstream oFile( ( g_sOutPath / sBookName ).string() );
 				oFile.imbue( g_locUTF8 );
 				if( oFile.is_open() )
 				{
@@ -178,16 +190,25 @@ int main(int argc, char* argv[])
 						auto sHTML = mClient.ReadHtml( rLink.second );
 						if( sHTML )
 						{
-							auto vImg = mSite.FindAllImage( *sHTML );
-							if( vImg.size() > 0 )
+							if( !bNoDLImage )
 							{
-								for( auto& rImg : vImg )
+								auto vImg = mSite.FindAllImage( *sHTML );
+								if( vImg.size() > 0 )
 								{
-									auto sFile = HttpClient::GetFilename( rImg.second );
-									if( sFile )
+									cout << "      Found " << vImg.size() << " images" << endl;
+									size_t uShift = 0;
+									for( auto& rImg : vImg )
 									{
-										wstring sFilename = boost::locale::conv::utf_to_utf<wchar_t>( *sFile );
-										mClient.GetBinaryFile( rImg.second, sFilename );
+										auto sFile = HttpClient::GetFilename( rImg.second );
+										if( sFile )
+										{
+											boost::filesystem::path sFileName = sImage / *sFile;
+											wstring sFilename = boost::locale::conv::utf_to_utf<wchar_t>( ( g_sOutPath / sFileName ).string() );
+											mClient.GetBinaryFile( rImg.second, sFilename );
+
+											sHTML->replace( uShift + rImg.first, rImg.second.size(), sFileName.string() );
+											uShift += sFileName.string().size() - rImg.second.size();
+										}
 									}
 								}
 							}
@@ -198,7 +219,7 @@ int main(int argc, char* argv[])
 					oFile.close();
 
 					cout << "  Convert from SC to TC" << endl;
-					ExternCommand( sBookName );
+					ExternCommand( ( g_sOutPath / sBookName ).string() );
 
 					cout << "  Book output finished" << endl; 
 				}
