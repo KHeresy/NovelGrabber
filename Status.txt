@@ -1,3 +1,13 @@
+5. download image to local
+
+6. test calibre and kindlegen for image
+
+7. opetional: test libiconv library and opencc library
+
+
+
+should done
+
 1. boost::local::conv::to_utf may make some word broken
     ex: http://www.wenku8.cn/novel/0/446/29604.htm
 	http://www.wenku8.cn/modules/article/reader.php?aid=446&cid=23598
@@ -8,10 +18,5 @@
     But the _wsystem command can't work for some char
     ex: http://www.wenku8.cn/modules/article/reader.php?aid=1213
 
-5. download image to local
-
-6. test calibre and kindlegen for image
-
-7. opetional: test libiconv library and opencc library
-
 8. file name converter?
+

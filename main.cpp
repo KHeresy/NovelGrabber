@@ -1,6 +1,7 @@
 #pragma region Header Files
 
 // STL Header
+#include <chrono>
 #include <codecvt>
 #include <fstream>
 #include <iostream>
@@ -9,10 +10,12 @@
 #include <process.h>
 
 // Boost Header
+#include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <boost/locale.hpp>
 #include <boost/program_options.hpp>
 
+// application header
 #include "HttpClient.h"
 #include "wenku8.cn.h"
 
@@ -20,23 +23,75 @@
 
 using namespace std;
 
+// global object
+locale g_locUTF8( locale(""), new codecvt_utf8<wchar_t>() );
+
+inline std::string GetTmpFileName()
+{
+	return ( boost::format( "%1%" ) % chrono::duration_cast<chrono::microseconds>( chrono::system_clock::now().time_since_epoch() ).count() ).str();
+}
+
 inline std::wstring toUTF8( const std::string& rS )
 {
 	return boost::locale::conv::to_utf<wchar_t>( rS, "GBK" );
 }
 
-inline void ExternCommand( const wstring& sFile1, const wstring& sFile2 )
+inline std::wstring ConvertSC2TC( const std::wstring& sText )
 {
-	wstring	sOpenCC	= L"Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
-	_wsystem( ( boost::wformat( sOpenCC ) % sFile1 % sFile2 ).str().c_str() );
+	static string	sOpenCC	= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
+
+	string sFile1 = GetTmpFileName();
+	string sFile2 = sFile1 + ".tmp2";
+	sFile1 += ".tmp1";
+	wstring sResult;
+
+	wofstream oFile( sFile1 );
+	if( oFile.is_open() )
+	{
+		oFile.imbue( g_locUTF8 );
+		oFile << sText;
+		oFile.close();
+
+		system( ( boost::format( sOpenCC ) % sFile1.c_str() % sFile2.c_str() ).str().c_str() );
+
+		wifstream iFile( sFile2 );
+		if( iFile.is_open() )
+		{
+			iFile.imbue( g_locUTF8 );
+			getline( iFile, sResult );
+			iFile.close();
+		}
+
+		boost::filesystem::remove( sFile1 );
+		boost::filesystem::remove( sFile2 );
+	}
+	return sResult;
+}
+
+inline void ExternCommand( const wstring& sFile )
+{
+	static string	sOpenCC	= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
+
+	string sTmpFile1 = GetTmpFileName();
+	string sTmpFile2 = sTmpFile1 + ".tmp2";
+	sTmpFile1 += ".tmp1";
+
+	// rename original file first
+	boost::filesystem::rename( sFile, sTmpFile1 );
+
+	// execut OpenCC command
+	system( ( boost::format( sOpenCC ) % sTmpFile1.c_str() % sTmpFile2.c_str() ).str().c_str() );
+
+	// rename and remove file
+	boost::filesystem::rename( sTmpFile2, sFile );
+	boost::filesystem::remove( sTmpFile1 );
 }
 
 int main(int argc, char* argv[])
 {
-	locale locUTF8( locale(""), new codecvt_utf8<wchar_t>() );
-	locale::global( locUTF8 );
-	cout.imbue( locUTF8 );
-	wcout.imbue( locUTF8 );
+	locale::global( g_locUTF8 );
+	cout.imbue( g_locUTF8 );
+	wcout.imbue( g_locUTF8 );
 
 	string	sURL;
 	string	sDir = ".";
@@ -94,11 +149,11 @@ int main(int argc, char* argv[])
 			// write test
 			for( BookIndex& rBook : vBooks )
 			{
-				wstring sBookName = boost::locale::conv::to_utf<wchar_t>( rBook.m_sTitle + ".html", "GB2312" );
-				wcout << L" Start process book <" << sBookName << L">, with " << rBook.m_vChapter.size() << L" chapters" << endl;
+				wstring sBookName = ConvertSC2TC( boost::locale::conv::to_utf<wchar_t>( rBook.m_sTitle + ".html", "GB2312" ) );
+				wcout << " Start process book <" << sBookName << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;
 
 				wofstream oFile( sBookName );
-				oFile.imbue( locUTF8 );
+				oFile.imbue( g_locUTF8 );
 				if( oFile.is_open() )
 				{
 					oFile << "<HTML>\n";
@@ -130,7 +185,7 @@ int main(int argc, char* argv[])
 					oFile.close();
 
 					cout << "  Convert from SC to TC" << endl;
-					ExternCommand( sBookName, L"TC-" + sBookName );
+					ExternCommand( sBookName );
 
 					cout << "  Book output finished" << endl; 
 				}
