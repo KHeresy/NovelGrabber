@@ -95,6 +95,7 @@ int main(int argc, char* argv[])
 	wcout.imbue( g_locUTF8 );
 
 	bool	bNoDLImage;
+	bool	bOverWrite;
 	string	sURL;
 	boost::filesystem::path	sDir;
 	boost::filesystem::path	sImage = "images";
@@ -109,7 +110,8 @@ int main(int argc, char* argv[])
 			( "help,H",			BPO::bool_switch()->notifier( [&bpoOptions]( bool bH ){ if( bH ){ std::cout << bpoOptions << std::endl; exit(0); } } ),	"Help message" )
 			( "url,U",			BPO::value(&sURL)->value_name("Web_Link"),							"The link of index page." )
 			( "output,O",		BPO::value(&sDir)->value_name("output_dir")->default_value("."),	"Directory to save output files" )
-			( "nodl__image",	BPO::bool_switch(&bNoDLImage)->default_value(false),				"Not download image" );
+			( "no_dl_image",	BPO::bool_switch(&bNoDLImage)->default_value(false),				"Not download image" )
+			( "no_overwrite",	BPO::bool_switch(&bOverWrite)->default_value(false),				"Overwrite existed files" );
 
 		// prase
 		try
@@ -164,68 +166,73 @@ int main(int argc, char* argv[])
 				wstring sBookName = ConvertSC2TC( boost::locale::conv::to_utf<wchar_t>( rBook.m_sTitle + ".html", "GB2312" ) );
 				wcout << " Start process book <" << sBookName << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;
 
-				wofstream oFile( ( g_sOutPath / sBookName ).string() );
-				oFile.imbue( g_locUTF8 );
-				if( oFile.is_open() )
+				if( bOverWrite || !boost::filesystem::exists( ( g_sOutPath / sBookName ).string() ) )
 				{
-					oFile << "<HTML>\n";
-					oFile << "<HEAD><META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n";
-					oFile << "<BODY>\n";
-					oFile << "<H3 ALIGN=CENTER>" << toUTF8( rBook.m_sTitle ) << "</H3>\n";
-					oFile << "<H4 ALIGN=CENTER>" << toUTF8( rBook.m_sAuthor ) << "</H4>\n";
-
-					// index
-					oFile << "<A ID=\"INDEX\"><HR></A>\n";
-					for( auto& rLink : rBook.m_vChapter )
+					wofstream oFile( ( g_sOutPath / sBookName ).string() );
+					oFile.imbue( g_locUTF8 );
+					if( oFile.is_open() )
 					{
-						oFile << "<div><a href=\"#" << &rLink << "\">" << toUTF8( rLink.first ) << "</a></siv>\n";
-					}
-
-					// content
-					for( auto& rLink : rBook.m_vChapter )
-					{
-						oFile << "<HR><H4><A ID=\"" << &rLink << "\">" << toUTF8( rLink.first ) << "</A></H4>\n";
-						cout << "  > " << rLink.second << endl;
-
-						auto sHTML = mClient.ReadHtml( rLink.second );
-						if( sHTML )
+						oFile << "<HTML>\n";
+						oFile << "<HEAD><META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n";
+						oFile << "<BODY>\n";
+						oFile << "<H3 ALIGN=CENTER>" << toUTF8( rBook.m_sTitle ) << "</H3>\n";
+						oFile << "<H4 ALIGN=CENTER>" << toUTF8( rBook.m_sAuthor ) << "</H4>\n";
+	
+						// index
+						oFile << "<A ID=\"INDEX\"><HR></A>\n";
+						for( auto& rLink : rBook.m_vChapter )
 						{
-							if( !bNoDLImage )
+							oFile << "<div><a href=\"#" << &rLink << "\">" << toUTF8( rLink.first ) << "</a></siv>\n";
+						}
+	
+						// content
+						for( auto& rLink : rBook.m_vChapter )
+						{
+							oFile << "<HR><H4><A ID=\"" << &rLink << "\">" << toUTF8( rLink.first ) << "</A></H4>\n";
+							cout << "  > " << rLink.second << endl;
+	
+							auto sHTML = mClient.ReadHtml( rLink.second );
+							if( sHTML )
 							{
-								auto vImg = mSite.FindAllImage( *sHTML );
-								if( vImg.size() > 0 )
+								if( !bNoDLImage )
 								{
-									cout << "      Found " << vImg.size() << " images" << endl;
-									size_t uShift = 0;
-									for( auto& rImg : vImg )
+									auto vImg = mSite.FindAllImage( *sHTML );
+									if( vImg.size() > 0 )
 									{
-										auto sFile = HttpClient::GetFilename( rImg.second );
-										if( sFile )
+										cout << "      Found " << vImg.size() << " images" << endl;
+										size_t uShift = 0;
+										for( auto& rImg : vImg )
 										{
-											boost::filesystem::path sFileName = sImage / *sFile;
-											wstring sFilename = boost::locale::conv::utf_to_utf<wchar_t>( ( g_sOutPath / sFileName ).string() );
-											mClient.GetBinaryFile( rImg.second, sFilename );
-
-											sHTML->replace( uShift + rImg.first, rImg.second.size(), sFileName.string() );
-											uShift += sFileName.string().size() - rImg.second.size();
+											auto sFile = HttpClient::GetFilename( rImg.second );
+											if( sFile )
+											{
+												boost::filesystem::path sFileName = sImage / *sFile;
+												wstring sFilename = boost::locale::conv::utf_to_utf<wchar_t>( ( g_sOutPath / sFileName ).string() );
+												if( bOverWrite || !boost::filesystem::exists( sFilename ) )
+												{
+													mClient.GetBinaryFile( rImg.second, sFilename );
+												}
+												sHTML->replace( uShift + rImg.first, rImg.second.size(), sFileName.string() );
+												uShift += sFileName.string().size() - rImg.second.size();
+											}
 										}
 									}
 								}
+								oFile << toUTF8( mSite.GetChapterContent( *sHTML ) );
 							}
-							oFile << toUTF8( mSite.GetChapterContent( *sHTML ) );
 						}
+						oFile << "</BODY></HTML>\n";
+						oFile.close();
+	
+						cout << "  Convert from SC to TC" << endl;
+						ExternCommand( ( g_sOutPath / sBookName ).string() );
+	
+						cout << "  Book output finished" << endl; 
 					}
-					oFile << "</BODY></HTML>\n";
-					oFile.close();
-
-					cout << "  Convert from SC to TC" << endl;
-					ExternCommand( ( g_sOutPath / sBookName ).string() );
-
-					cout << "  Book output finished" << endl; 
-				}
-				else
-				{
-					 cerr << " Can't open the file to output" << endl;
+					else
+					{
+						 cerr << " Can't open the file to output" << endl;
+					}
 				}
 			}
 		}
