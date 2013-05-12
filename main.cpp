@@ -25,20 +25,10 @@ inline std::wstring toUTF8( const std::string& rS )
 	return boost::locale::conv::to_utf<wchar_t>( rS, "GBK" );
 }
 
-inline void ExternCommand( const wstring& sFile, const wstring& sTmpFile )
+inline void ExternCommand( const wstring& sFile1, const wstring& sFile2 )
 {
-	wstring	sIconv	= L"Binary\\libiconv\\iconv.exe -f GBK -t UTF-8 \"%1%\" > \"%2%\"",
-			sOpenCC	= L"Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
-	_wsystem( ( boost::wformat( sIconv ) % sFile % sTmpFile ).str().c_str() );
-	_wsystem( ( boost::wformat( sOpenCC ) % sTmpFile % sFile ).str().c_str() );
-}
-
-inline void ExternCommand( const string& sFile, const string& sTmpFile )
-{
-	string	sIconv	= "Binary\\libiconv\\iconv.exe -f GBK -t UTF-8 \"%1%\" > \"%2%\"",
-			sOpenCC	= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
-	system( ( boost::format( sIconv ) % sFile % sTmpFile ).str().c_str() );
-	system( ( boost::format( sOpenCC ) % sTmpFile % sFile ).str().c_str() );
+	wstring	sOpenCC	= L"Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
+	_wsystem( ( boost::wformat( sOpenCC ) % sFile1 % sFile2 ).str().c_str() );
 }
 
 int main(int argc, char* argv[])
@@ -139,8 +129,8 @@ int main(int argc, char* argv[])
 					oFile << "</BODY></HTML>\n";
 					oFile.close();
 
-					cout << "  Convert HTML to UTF-8 TC" << endl;
-					//ExternCommand( sBookName, L"tmp" );
+					cout << "  Convert from SC to TC" << endl;
+					ExternCommand( sBookName, L"TC-" + sBookName );
 
 					cout << "  Book output finished" << endl; 
 				}
