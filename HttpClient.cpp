@@ -201,7 +201,17 @@ boost::optional<string> HttpClient::ReadHtml( const string& rServer, const strin
 		// Write the remaining data to output.
 		stringstream oStream;
 		oStream << sStream.rdbuf();
-		return oStream.str();
+		string sHtml = oStream.str();
+
+		size_t uPos = sHtml.find( "charset=" );
+		if( uPos != string::npos )
+		{
+			auto uEnd = sHtml.find_first_of( "'\" ", uPos + 1 );
+			if( uEnd != string::npos )
+			{
+			}
+		}
+		return sHtml;
 	}
 	return boost::optional<string>();
 }
