@@ -158,10 +158,16 @@ int main(int argc, char* argv[])
 		{
 			boost::optional<string> rHtml = mClient.ReadHtml( mURL->first, mURL->second );
 			auto vBooks = mSite.AnalyzeIndexPage( *rHtml );
-			cout << "Found " << vBooks.size() << " books" << endl;
+			if( vBooks.first == "" )
+			{
+				cerr << "Can't find book information" << endl;
+				return -1;
+			}
+
+			cout << "Found " << vBooks.second.size() << " books" << endl;
 
 			// write test
-			for( BookIndex& rBook : vBooks )
+			for( BookIndex& rBook : vBooks.second )
 			{
 				wstring sBookName = ConvertSC2TC( boost::locale::conv::to_utf<wchar_t>( rBook.m_sTitle + ".html", "GB2312" ) );
 				wcout << " Start process book <" << sBookName << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;

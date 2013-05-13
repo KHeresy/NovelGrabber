@@ -22,7 +22,7 @@ public:
 
 	bool CheckServer( const std::string& rServer );
 
-	std::vector<BookIndex> AnalyzeIndexPage( std::string& rHtmlContent );
+	std::pair<std::string,std::vector<BookIndex>> AnalyzeIndexPage( std::string& rHtmlContent );
 
 	std::string GetChapterContent( const std::string& rUrl );
 

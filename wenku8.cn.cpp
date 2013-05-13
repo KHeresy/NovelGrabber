@@ -27,7 +27,7 @@ bool Wenku8Cn::CheckServer( const std::string& rServer )
 	return false;
 }
 
-std::vector<BookIndex> Wenku8Cn::AnalyzeIndexPage( std::string& rHtmlContent )
+std::pair<std::string,std::vector<BookIndex>> Wenku8Cn::AnalyzeIndexPage( std::string& rHtmlContent )
 {
 	string sTitle, sAuthor;
 
@@ -95,7 +95,7 @@ std::vector<BookIndex> Wenku8Cn::AnalyzeIndexPage( std::string& rHtmlContent )
 		}
 		vBookLinks.push_back( mBook );
 	}
-	return vBookLinks;
+	return make_pair( sTitle, vBookLinks );
 }
 
 string Wenku8Cn::GetChapterContent( const string& rHtml )
