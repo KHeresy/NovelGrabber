@@ -1,9 +1,12 @@
+// STL Header
 #include <vector>
 #include <fstream>
 #include <sstream>
 
+// Boost Header
 #include <boost/algorithm/string.hpp>
 
+// Application Header
 #include "HttpClient.h"
 
 using namespace std;
