@@ -3,21 +3,12 @@
 
 2. image may need to resize
 
-5. download image to local
-
 6. test calibre and kindlegen for image
 
-7. opetional: test libiconv library and opencc library
-
+7. opetional: test opencc library
 
 
 should done
-
-1. boost::local::conv::to_utf may make some word broken
-    ex: http://www.wenku8.cn/novel/0/446/29604.htm
-	http://www.wenku8.cn/modules/article/reader.php?aid=446&cid=23598
-
-2. need to use wstring for open file, but need to write via string for unknown reason
 
 3. Now try to use libiconv and opencc command line tools for conversion
     But the _wsystem command can't work for some char
