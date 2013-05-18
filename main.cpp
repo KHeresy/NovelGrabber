@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
 			cout << " >Found " << vBooks.second.size() << " books" << endl;
 
 			// check directory
-			g_sOutPath = sDir.wstring();
+			g_sOutPath = sDir / VertifyFilename( ConvertSC2TC( vBooks.first ) );
 			if( !boost::filesystem::exists( g_sOutPath ) )
 				boost::filesystem::create_directories( g_sOutPath );
 			if( !bNoDLImage && !boost::filesystem::exists( g_sOutPath / sImage ) )
@@ -241,23 +241,26 @@ int main(int argc, char* argv[])
 									auto vImg = mSite.FindAllImage( *sHTML );
 									if( vImg.size() > 0 )
 									{
-										cout << "      Found " << vImg.size() << " images" << endl;
+										cout << "      Found " << vImg.size() << " images";
 										size_t uShift = 0;
 										for( auto& rImg : vImg )
 										{
 											auto sFile = HttpClient::GetFilename( SConv( rImg.second ) );
 											if( sFile )
 											{
-												boost::filesystem::path sFileName = g_sOutPath / sImage / *sFile;
+												boost::filesystem::path sImagePath = sImage / *sFile;
+												boost::filesystem::path sFileName = g_sOutPath / sImagePath;
 
 												if( bOverWrite || !boost::filesystem::exists( sFileName ) )
 												{
 													mClient.GetBinaryFile( SConv( rImg.second ), sFileName.wstring() );
 												}
-												sHTML->replace( uShift + rImg.first, rImg.second.size(), sFileName.wstring() );
-												uShift += sFileName.wstring().size() - rImg.second.size();
+												sHTML->replace( uShift + rImg.first, rImg.second.size(), sImagePath.wstring() );
+												uShift += sImagePath.wstring().size() - rImg.second.size();
 											}
+											cout << "." << flush;
 										}
+										cout << endl;
 									}
 								}
 								oFile << mSite.GetChapterContent( *sHTML );
