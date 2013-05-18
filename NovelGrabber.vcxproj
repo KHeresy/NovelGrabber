@@ -87,6 +87,7 @@
     <ClCompile Include="wenku8.cn.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BookDef.h" />
     <ClInclude Include="HttpClient.h" />
     <ClInclude Include="wenku8.cn.h" />
   </ItemGroup>

@@ -147,14 +147,6 @@ int main(int argc, char* argv[])
 	}
 	#pragma endregion
 
-	// check directory
-	g_sOutPath = sDir;
-	if( !boost::filesystem::exists( g_sOutPath ) )
-		boost::filesystem::create_directories( g_sOutPath );
-	if( !bNoDLImage && !boost::filesystem::exists( g_sOutPath / sImage ) )
-		boost::filesystem::create_directories( g_sOutPath / sImage );
-	wcout << "Output to " << g_sOutPath << endl;
-
 	HttpClient mClient;
 	auto mURL = HttpClient::ParseURL( sURL );
 	if( mURL )
@@ -169,8 +161,16 @@ int main(int argc, char* argv[])
 				cerr << "Can't find book information" << endl;
 				return -1;
 			}
+			wcout << L"Strat to download novel: " << vBooks.first << "\n";
+			cout << " >Found " << vBooks.second.size() << " books" << endl;
 
-			cout << "Found " << vBooks.second.size() << " books" << endl;
+			// check directory
+			g_sOutPath = sDir;
+			if( !boost::filesystem::exists( g_sOutPath ) )
+				boost::filesystem::create_directories( g_sOutPath );
+			if( !bNoDLImage && !boost::filesystem::exists( g_sOutPath / sImage ) )
+				boost::filesystem::create_directories( g_sOutPath / sImage );
+			wcout << "Output to " << g_sOutPath << endl;
 
 			// write test
 			for( BookIndex& rBook : vBooks.second )
