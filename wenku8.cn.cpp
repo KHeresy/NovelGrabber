@@ -4,6 +4,7 @@
 // Boost Header
 #include <boost/assign/list_of.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/locale.hpp>
 
 using namespace std;
 
@@ -11,6 +12,7 @@ Wenku8Cn::Wenku8Cn()
 {
 	m_SiteList = boost::assign::list_of( "www.wenku8.cn" );
 
+	m_wsAuthorPrefix	= boost::locale::conv::utf_to_utf<wchar_t>( "\xE4\xBD\x9C\xE8\x80\x85\xEF\xBC\x9A" );
 	m_TitleTag			= make_pair( L"<div id=\"title\">",					L"</div>" );
 	m_AuthorTag			= make_pair( L"<div id=\"info\">",					L"</div>" );
 	m_BookTitleTag		= make_pair( L"<td colspan=\"4\" class=\"vcss\">",	L"</td>" );
@@ -31,13 +33,16 @@ std::pair<std::wstring,std::vector<BookIndex>> Wenku8Cn::AnalyzeIndexPage( std::
 {
 	wstring sTitle, sAuthor;
 
-	// find title and author
+	// find title
 	auto pTitle = HTMLParser::FindContentBetweenTag( rHtmlContent, m_TitleTag );
 	if( pTitle.first != wstring::npos )
 		sTitle	= pTitle.second;
 
-	auto pAuthor = HTMLParser::FindContentBetweenTag( rHtmlContent, m_AuthorTag );
-		sAuthor = pAuthor.second;
+	// find author
+	auto	pAuthor = HTMLParser::FindContentBetweenTag( rHtmlContent, m_AuthorTag );
+	sAuthor = pAuthor.second;
+	if( sAuthor.length() > 3 && sAuthor.substr( 0, 3 ) == m_wsAuthorPrefix )
+		sAuthor = sAuthor.substr( 3 );
 
 	// find all books' title
 	vector< std::pair<size_t,wstring> > vBooks;

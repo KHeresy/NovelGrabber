@@ -105,7 +105,6 @@ int main(int argc, char* argv[])
 	string	sURL;
 	boost::filesystem::path	sDir;
 	boost::filesystem::path	sImage = "images";
-	wstring wsAuthorPrefix = boost::locale::conv::to_utf<wchar_t>( "\xE4\xBD\x9C\xE8\x80\x85\xEF\xBC\x9A", "UTF-8" );
 
 	#pragma region Program Options
 	{
@@ -185,18 +184,13 @@ int main(int argc, char* argv[])
 					oFile.imbue( g_locUTF8 );
 					if( oFile.is_open() )
 					{
-						// perpare converted string
-						wstring wsAuthor	= rBook.m_sAuthor;
-						if( wsAuthor.length() > 3 && wsAuthor.substr( 0, 3 ) == wsAuthorPrefix )
-								wsAuthor = wsAuthor.substr( 3 );
-
 						oFile << "<HTML>\n";
 						oFile << "<HEAD>\n<META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n";
 						oFile << "<TITLE>" << rBook.m_sTitle << "</TITLE>\n";
-						oFile << "<META name=\"Author\" content=\"" << wsAuthor << "\">\n</HEAD>\n";
+						oFile << "<META name=\"Author\" content=\"" << rBook.m_sAuthor << "\">\n</HEAD>\n";
 						oFile << "<BODY>\n";
 						oFile << "<H3 ALIGN=\"CENTER\">" << rBook.m_sTitle << "</H3>\n";
-						oFile << "<H4 ALIGN=\"CENTER\">" << wsAuthor << "</H4>\n";
+						oFile << "<H4 ALIGN=\"CENTER\">" << rBook.m_sAuthor << "</H4>\n";
 	
 						// index
 						oFile << "<A ID=\"INDEX\" /><HR>\n<NAV>\n";

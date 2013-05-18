@@ -29,8 +29,9 @@ public:
 	std::vector< std::pair<size_t,std::wstring> > FindAllImage( const std::wstring& rHTML, size_t uPos = 0 );
 
 protected:
-	std::set<std::string> m_SiteList;
+	std::set<std::string>	m_SiteList;
 
+	std::wstring			m_wsAuthorPrefix;
 	std::pair<std::wstring,std::wstring>	m_TitleTag;
 	std::pair<std::wstring,std::wstring>	m_AuthorTag;
 	std::pair<std::wstring,std::wstring>	m_BookTitleTag;
