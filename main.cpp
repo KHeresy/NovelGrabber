@@ -100,6 +100,7 @@ int main(int argc, char* argv[])
 	string	sURL;
 	boost::filesystem::path	sDir;
 	boost::filesystem::path	sImage = "images";
+	wstring wsAuthorPrefix = boost::locale::conv::to_utf<wchar_t>( "\xE4\xBD\x9C\xE8\x80\x85\xEF\xBC\x9A", "UTF-8" );
 
 	#pragma region Program Options
 	{
@@ -179,23 +180,37 @@ int main(int argc, char* argv[])
 					oFile.imbue( g_locUTF8 );
 					if( oFile.is_open() )
 					{
+						// perpare converted string
+						wstring wsAuthor	= toUTF8( rBook.m_sAuthor ),
+								wsTitle		= toUTF8( rBook.m_sTitle );
+						if( wsAuthor.length() > 3 && wsAuthor.substr( 0, 3 ) == wsAuthorPrefix )
+								wsAuthor = wsAuthor.substr( 3 );
+						vector< pair<wstring, string> > vChapters;
+
 						oFile << "<HTML>\n";
-						oFile << "<HEAD><META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n";
+						oFile << "<HEAD>\n<META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n";
+						oFile << "<TITLE>" << wsTitle << "</TITLE>\n";
+						oFile << "<META name=\"Author\" content=\"" << wsAuthor << "\">\n</HEAD>\n";
 						oFile << "<BODY>\n";
-						oFile << "<H3 ALIGN=CENTER>" << toUTF8( rBook.m_sTitle ) << "</H3>\n";
-						oFile << "<H4 ALIGN=CENTER>" << toUTF8( rBook.m_sAuthor ) << "</H4>\n";
+						oFile << "<H3 ALIGN=CENTER>" << wsTitle << "</H3>\n";
+						oFile << "<H4 ALIGN=CENTER>" << wsAuthor << "</H4>\n";
 	
 						// index
-						oFile << "<A ID=\"INDEX\"><HR></A>\n";
+						oFile << "<A ID=\"INDEX\" /><HR>\n<NAV>\n";
+						size_t idxChapter = 0;
 						for( auto& rLink : rBook.m_vChapter )
 						{
-							oFile << "<div><a href=\"#" << &rLink << "\">" << toUTF8( rLink.first ) << "</a></siv>\n";
+							wstring wChapter = toUTF8( rLink.first );
+							oFile << "<p><a href=\"#CH" << ++idxChapter << "\">" << wChapter << "</a></p>\n";
+							vChapters.push_back( make_pair( wChapter, rLink.second ) );
 						}
+						oFile << "</NAV>\n";
 	
 						// content
-						for( auto& rLink : rBook.m_vChapter )
+						idxChapter = 0;
+						for( auto& rLink : vChapters )
 						{
-							oFile << "<HR><H4><A ID=\"" << &rLink << "\">" << toUTF8( rLink.first ) << "</A></H4>\n";
+							oFile << "<HR><A NAME=\"CH" << ++idxChapter << "\" /><H4>" << rLink.first << "</H4>\n";
 							cout << "  > " << rLink.second << endl;
 	
 							auto sHTML = mClient.ReadHtml( rLink.second );
