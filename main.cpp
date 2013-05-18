@@ -34,6 +34,17 @@ inline std::string GetTmpFileName()
 	return boost::filesystem::unique_path().string();
 }
 
+inline std::string CheckLink( const std::string& sUrl, const std::string& sPartent )
+{
+	if( sUrl.size() > 10 && sUrl.substr( 0, 7 ) == "http://" )
+		return sUrl;
+	
+	if( sUrl.size() > 3 && sUrl[0] != '/' )
+		return sPartent + "/" + sUrl;
+	
+	return sUrl;
+}
+
 inline std::wstring VertifyFilename( const std::wstring& sFilename )
 {
 	static wstring wsCHarMap1 = L"\\/:*\"|<>?!'";
@@ -178,6 +189,8 @@ int main(int argc, char* argv[])
 		Wenku8Cn mSite;
 		if( mSite.CheckServer( mURL->first ) )
 		{
+			boost::filesystem::path pathURL = boost::filesystem::path( sURL ).parent_path();
+
 			boost::optional<wstring> rHtml = mClient.ReadHtml( mURL->first, mURL->second );
 			auto vBooks = mSite.AnalyzeIndexPage( *rHtml );
 			if( vBooks.first == L"" )
@@ -233,7 +246,7 @@ int main(int argc, char* argv[])
 							oFile << "<HR><A ID=\"CH" << ++idxChapter << "\" /><H4>" << rLink.first << "</H4>\n";
 							wcout << "  > " << rLink.second << endl;
 	
-							auto sHTML = mClient.ReadHtml( SConv( rLink.second ) );
+							auto sHTML = mClient.ReadHtml( CheckLink( SConv( rLink.second ), pathURL.string() ) );
 							if( sHTML )
 							{
 								if( !bNoDLImage )
@@ -245,7 +258,8 @@ int main(int argc, char* argv[])
 										size_t uShift = 0;
 										for( auto& rImg : vImg )
 										{
-											auto sFile = HttpClient::GetFilename( SConv( rImg.second ) );
+											string sLink = CheckLink( SConv( rImg.second ), pathURL.string() );
+											auto sFile = HttpClient::GetFilename( sLink );
 											if( sFile )
 											{
 												boost::filesystem::path sImagePath = sImage / *sFile;
@@ -253,7 +267,7 @@ int main(int argc, char* argv[])
 
 												if( bOverWrite || !boost::filesystem::exists( sFileName ) )
 												{
-													mClient.GetBinaryFile( SConv( rImg.second ), sFileName.wstring() );
+													mClient.GetBinaryFile( sLink, sFileName.wstring() );
 												}
 												sHTML->replace( uShift + rImg.first, rImg.second.size(), sImagePath.wstring() );
 												uShift += sImagePath.wstring().size() - rImg.second.size();
