@@ -31,11 +31,6 @@ inline std::string GetTmpFileName()
 	return boost::filesystem::unique_path().string();
 }
 
-inline std::wstring toUTF8( const std::string& rS )
-{
-	return boost::locale::conv::to_utf<wchar_t>( rS, "GBK" );
-}
-
 inline std::wstring ConvertSC2TC( const std::wstring& sText )
 {
 	static string	sOpenCC	= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
@@ -85,6 +80,16 @@ inline void ExternCommand( const string& sFile )
 	// rename and remove file
 	boost::filesystem::rename( sTmpFile2, sFile );
 	boost::filesystem::remove( sTmpFile1 );
+}
+
+inline string SConv( const wstring& wsStr )
+{
+	return boost::locale::conv::utf_to_utf<char>( wsStr );
+}
+
+inline wstring SConv( const string& sStr )
+{
+	return boost::locale::conv::utf_to_utf<wchar_t>( sStr );
 }
 
 int main(int argc, char* argv[])
@@ -158,9 +163,9 @@ int main(int argc, char* argv[])
 		Wenku8Cn mSite;
 		if( mSite.CheckServer( mURL->first ) )
 		{
-			boost::optional<string> rHtml = mClient.ReadHtml( mURL->first, mURL->second );
+			boost::optional<wstring> rHtml = mClient.ReadHtml( mURL->first, mURL->second );
 			auto vBooks = mSite.AnalyzeIndexPage( *rHtml );
-			if( vBooks.first == "" )
+			if( vBooks.first == L"" )
 			{
 				cerr << "Can't find book information" << endl;
 				return -1;
@@ -171,7 +176,7 @@ int main(int argc, char* argv[])
 			// write test
 			for( BookIndex& rBook : vBooks.second )
 			{
-				wstring sBookName = ConvertSC2TC( boost::locale::conv::to_utf<wchar_t>( rBook.m_sTitle + ".html", "GB2312" ) );
+				wstring sBookName = ConvertSC2TC( rBook.m_sTitle + L".html" );
 				wcout << " Start process book <" << sBookName << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;
 
 				if( bOverWrite || !boost::filesystem::exists( ( g_sOutPath / sBookName ).string() ) )
@@ -181,39 +186,35 @@ int main(int argc, char* argv[])
 					if( oFile.is_open() )
 					{
 						// perpare converted string
-						wstring wsAuthor	= toUTF8( rBook.m_sAuthor ),
-								wsTitle		= toUTF8( rBook.m_sTitle );
+						wstring wsAuthor	= rBook.m_sAuthor;
 						if( wsAuthor.length() > 3 && wsAuthor.substr( 0, 3 ) == wsAuthorPrefix )
 								wsAuthor = wsAuthor.substr( 3 );
-						vector< pair<wstring, string> > vChapters;
 
 						oFile << "<HTML>\n";
 						oFile << "<HEAD>\n<META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n";
-						oFile << "<TITLE>" << wsTitle << "</TITLE>\n";
+						oFile << "<TITLE>" << rBook.m_sTitle << "</TITLE>\n";
 						oFile << "<META name=\"Author\" content=\"" << wsAuthor << "\">\n</HEAD>\n";
 						oFile << "<BODY>\n";
-						oFile << "<H3 ALIGN=CENTER>" << wsTitle << "</H3>\n";
-						oFile << "<H4 ALIGN=CENTER>" << wsAuthor << "</H4>\n";
+						oFile << "<H3 ALIGN=\"CENTER\">" << rBook.m_sTitle << "</H3>\n";
+						oFile << "<H4 ALIGN=\"CENTER\">" << wsAuthor << "</H4>\n";
 	
 						// index
 						oFile << "<A ID=\"INDEX\" /><HR>\n<NAV>\n";
 						size_t idxChapter = 0;
 						for( auto& rLink : rBook.m_vChapter )
 						{
-							wstring wChapter = toUTF8( rLink.first );
-							oFile << "<p><a href=\"#CH" << ++idxChapter << "\">" << wChapter << "</a></p>\n";
-							vChapters.push_back( make_pair( wChapter, rLink.second ) );
+							oFile << "<p><a href=\"#CH" << ++idxChapter << "\">" << rLink.first << "</a></p>\n";
 						}
 						oFile << "</NAV>\n";
 	
 						// content
 						idxChapter = 0;
-						for( auto& rLink : vChapters )
+						for( auto& rLink : rBook.m_vChapter )
 						{
-							oFile << "<HR><A NAME=\"CH" << ++idxChapter << "\" /><H4>" << rLink.first << "</H4>\n";
-							cout << "  > " << rLink.second << endl;
+							oFile << "<HR><A ID=\"CH" << ++idxChapter << "\" /><H4>" << rLink.first << "</H4>\n";
+							wcout << "  > " << rLink.second << endl;
 	
-							auto sHTML = mClient.ReadHtml( rLink.second );
+							auto sHTML = mClient.ReadHtml( SConv( rLink.second ) );
 							if( sHTML )
 							{
 								if( !bNoDLImage )
@@ -225,22 +226,22 @@ int main(int argc, char* argv[])
 										size_t uShift = 0;
 										for( auto& rImg : vImg )
 										{
-											auto sFile = HttpClient::GetFilename( rImg.second );
+											auto sFile = HttpClient::GetFilename( SConv( rImg.second ) );
 											if( sFile )
 											{
 												boost::filesystem::path sFileName = sImage / *sFile;
-												wstring sFilename = boost::locale::conv::utf_to_utf<wchar_t>( ( g_sOutPath / sFileName ).string() );
+												wstring sFilename = SConv( ( g_sOutPath / sFileName ).string() );
 												if( bOverWrite || !boost::filesystem::exists( sFilename ) )
 												{
-													mClient.GetBinaryFile( rImg.second, sFilename );
+													mClient.GetBinaryFile( SConv( rImg.second ), sFilename );
 												}
-												sHTML->replace( uShift + rImg.first, rImg.second.size(), sFileName.string() );
+												sHTML->replace( uShift + rImg.first, rImg.second.size(), SConv( sFileName.string() ) );
 												uShift += sFileName.string().size() - rImg.second.size();
 											}
 										}
 									}
 								}
-								oFile << toUTF8( mSite.GetChapterContent( *sHTML ) );
+								oFile << mSite.GetChapterContent( *sHTML );
 							}
 						}
 						oFile << "</BODY></HTML>\n";

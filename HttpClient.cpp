@@ -5,6 +5,7 @@
 
 // Boost Header
 #include <boost/algorithm/string.hpp>
+#include <boost/locale.hpp>
 
 // Application Header
 #include "HttpClient.h"
@@ -107,10 +108,10 @@ boost::optional< std::pair<size_t,size_t> > HTMLTag::FindQuoteContent( const std
 }
 
 // Functions of HTMLParsr
-void HTMLParser::FindTag( const std::string& rHtml, const std::string& rTag, const std::map< std::string, boost::optional<std::string> >& rAttribute, size_t uStartPos )
+void HTMLParser::FindTag( const std::wstring& rHtml, const std::wstring& rTag, const std::map< std::wstring, boost::optional<std::wstring> >& rAttribute, size_t uStartPos )
 {
-	std::string sTagBegin	= "<" + rTag,
-				sTagEnd		= "</" + rTag + ">";
+	std::wstring	sTagBegin	= L"<" + rTag,
+					sTagEnd		= L"</" + rTag + L">";
 	
 	// find the position of tag
 	size_t uPos1 = rHtml.find( sTagBegin, uStartPos );
@@ -120,7 +121,7 @@ void HTMLParser::FindTag( const std::string& rHtml, const std::string& rTag, con
 	}
 	
 	// find the end of the start tag
-	size_t uPos2 = rHtml.find( ">", uPos1 + sTagBegin.length() );
+	size_t uPos2 = rHtml.find( L">", uPos1 + sTagBegin.length() );
 	if( uPos2 == std::string::npos )
 	{
 		return;
@@ -129,7 +130,7 @@ void HTMLParser::FindTag( const std::string& rHtml, const std::string& rTag, con
 	if( rAttribute.size() > 0 )
 	{
 		// get attributes
-		std::string sAttributes = rHtml.substr( uPos1 + sTagBegin.length(), uPos2 - ( uPos1 + sTagBegin.length() ) );
+		std::wstring sAttributes = rHtml.substr( uPos1 + sTagBegin.length(), uPos2 - ( uPos1 + sTagBegin.length() ) );
 
 		// TODO: check attribute
 	}
@@ -140,53 +141,53 @@ void HTMLParser::FindTag( const std::string& rHtml, const std::string& rTag, con
 	size_t uPos3 = rHtml.find( sTagEnd, uPos2 + 1 );
 	if( uPos3 != std::string::npos )
 	{
-		std::string sContent = rHtml.substr( uPos2 + 1, uPos3 - uPos2 - 1 );
+		std::wstring sContent = rHtml.substr( uPos2 + 1, uPos3 - uPos2 - 1 );
 	}
 }
 
-std::pair<size_t,string> HTMLParser::FindContentBetweenTag( const string& rHtml, const pair<string,string>& rTag, size_t uStartPos )
+std::pair<size_t,wstring> HTMLParser::FindContentBetweenTag( const wstring& rHtml, const pair<wstring,wstring>& rTag, size_t uStartPos )
 {
 	size_t uPos1 = rHtml.find( rTag.first, uStartPos );
-	if( uPos1 != string::npos )
+	if( uPos1 != wstring::npos )
 	{
 		size_t uPos2 = rHtml.find( rTag.second, uPos1 );
 		uPos1 = uPos1 + rTag.first.length();
 
-		std::string sContent = rHtml.substr( uPos1, uPos2 - uPos1 );
+		std::wstring sContent = rHtml.substr( uPos1, uPos2 - uPos1 );
 		boost::algorithm::trim( sContent );
 		return make_pair( uPos1, sContent );
 	}
-	return make_pair( string::npos, "" );
+	return make_pair( wstring::npos, L"" );
 }
 
-boost::optional< pair<string,string> > HTMLParser::AnalyzeLink( const std::string& rHtml, size_t uStartPos )
+boost::optional< pair<wstring,wstring> > HTMLParser::AnalyzeLink( const wstring& rHtml, size_t uStartPos )
 {
-	size_t uPos1 = rHtml.find( "<a ", uStartPos );
-	if( uPos1 != string::npos )
+	size_t uPos1 = rHtml.find( L"<a ", uStartPos );
+	if( uPos1 != wstring::npos )
 	{
-		size_t uPos2 = rHtml.find( "href=\"", uPos1 );
-		if( uPos2 != string::npos )
+		size_t uPos2 = rHtml.find( L"href=\"", uPos1 );
+		if( uPos2 != wstring::npos )
 		{
 			uPos2 += 6;
-			uPos1 = rHtml.find( "\"", uPos2 );
-			if( uPos1 != string::npos )
+			uPos1 = rHtml.find( L"\"", uPos2 );
+			if( uPos1 != wstring::npos )
 			{
-				string sLinkUrl = rHtml.substr( uPos2, uPos1 - uPos2 );
+				wstring sLinkUrl = rHtml.substr( uPos2, uPos1 - uPos2 );
 
-				uPos1 = rHtml.find( ">", uPos1 );
-				if( uPos1 != string::npos )
+				uPos1 = rHtml.find( L">", uPos1 );
+				if( uPos1 != wstring::npos )
 				{
 					uPos1 += 1;
-					uPos2 = rHtml.find( "</a>", uPos1 );
-					string sLinkText = rHtml.substr( uPos1, uPos2 - uPos1 );
+					uPos2 = rHtml.find( L"</a>", uPos1 );
+					wstring sLinkText = rHtml.substr( uPos1, uPos2 - uPos1 );
 					boost::algorithm::trim( sLinkText );
 
-					return boost::optional< pair<string,string> >( make_pair( sLinkText, sLinkUrl ) );
+					return boost::optional< pair<wstring,wstring> >( make_pair( sLinkText, sLinkUrl ) );
 				}
 			}
 		}
 	}
-	return boost::optional< pair<string,string> >();
+	return boost::optional< pair<wstring,wstring> >();
 }
 
 // Functions of HttpClient
@@ -194,7 +195,7 @@ HttpClient::HttpClient() : m_Resolver( m_IO_service )
 {
 }
 
-boost::optional<string> HttpClient::ReadHtml( const string& rServer, const string& rPath )
+boost::optional<wstring> HttpClient::ReadHtml( const string& rServer, const string& rPath )
 {
 	// code reference to http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/example/iostreams/http_client.cpp
 	tcp::iostream sStream;
@@ -206,17 +207,19 @@ boost::optional<string> HttpClient::ReadHtml( const string& rServer, const strin
 		oStream << sStream.rdbuf();
 		string sHtml = oStream.str();
 
+		string sEncoding = "ANSI";
 		size_t uPos = sHtml.find( "charset=" );
 		if( uPos != string::npos )
 		{
 			auto uEnd = sHtml.find_first_of( "'\" ", uPos + 1 );
 			if( uEnd != string::npos )
 			{
+				sEncoding = sHtml.substr( uPos + 8, uEnd - uPos - 8 );
 			}
 		}
-		return sHtml;
+		return boost::locale::conv::to_utf<wchar_t>( sHtml, sEncoding );
 	}
-	return boost::optional<string>();
+	return boost::optional<wstring>();
 }
 
 bool HttpClient::GetBinaryFile( const string& rServer, const string& rPath, const wstring& rFilename )

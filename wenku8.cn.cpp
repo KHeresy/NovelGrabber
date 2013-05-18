@@ -11,12 +11,12 @@ Wenku8Cn::Wenku8Cn()
 {
 	m_SiteList = boost::assign::list_of( "www.wenku8.cn" );
 
-	m_TitleTag			= make_pair( "<div id=\"title\">",					"</div>" );
-	m_AuthorTag			= make_pair( "<div id=\"info\">",					"</div>" );
-	m_BookTitleTag		= make_pair( "<td colspan=\"4\" class=\"vcss\">",	"</td>" );
-	m_BookChapterTag	= make_pair( "<td class=\"ccss\">",					"</td>" );
-	m_ContentTag		= make_pair( "<div id=\"content\">",				"\n</div>" );
-	m_ImageTag			= make_pair( "<img src=\"",							"\" border=\"0\" class=\"imagecontent\">" );
+	m_TitleTag			= make_pair( L"<div id=\"title\">",					L"</div>" );
+	m_AuthorTag			= make_pair( L"<div id=\"info\">",					L"</div>" );
+	m_BookTitleTag		= make_pair( L"<td colspan=\"4\" class=\"vcss\">",	L"</td>" );
+	m_BookChapterTag	= make_pair( L"<td class=\"ccss\">",				L"</td>" );
+	m_ContentTag		= make_pair( L"<div id=\"content\">",				L"\n</div>" );
+	m_ImageTag			= make_pair( L"<img src=\"",						L"\" border=\"0\" class=\"imagecontent\">" );
 }
 
 bool Wenku8Cn::CheckServer( const std::string& rServer )
@@ -27,25 +27,25 @@ bool Wenku8Cn::CheckServer( const std::string& rServer )
 	return false;
 }
 
-std::pair<std::string,std::vector<BookIndex>> Wenku8Cn::AnalyzeIndexPage( std::string& rHtmlContent )
+std::pair<std::wstring,std::vector<BookIndex>> Wenku8Cn::AnalyzeIndexPage( std::wstring& rHtmlContent )
 {
-	string sTitle, sAuthor;
+	wstring sTitle, sAuthor;
 
 	// find title and author
 	auto pTitle = HTMLParser::FindContentBetweenTag( rHtmlContent, m_TitleTag );
-	if( pTitle.first != string::npos )
+	if( pTitle.first != wstring::npos )
 		sTitle	= pTitle.second;
 
 	auto pAuthor = HTMLParser::FindContentBetweenTag( rHtmlContent, m_AuthorTag );
 		sAuthor = pAuthor.second;
 
 	// find all books' title
-	vector< std::pair<size_t,string> > vBooks;
+	vector< std::pair<size_t,wstring> > vBooks;
 	size_t uPos = 0;
 	while( true )
 	{
 		auto pBook = HTMLParser::FindContentBetweenTag( rHtmlContent, m_BookTitleTag, uPos );
-		if( pBook.first != string::npos )
+		if( pBook.first != wstring::npos )
 		{
 			vBooks.push_back( pBook );
 			uPos = pBook.first + 1;
@@ -69,20 +69,20 @@ std::pair<std::string,std::vector<BookIndex>> Wenku8Cn::AnalyzeIndexPage( std::s
 
 		// basic book data
 		BookIndex mBook;
-		mBook.m_sTitle	= sTitle + " " + vBooks[i].second;
+		mBook.m_sTitle	= sTitle + L" " + vBooks[i].second;
 		mBook.m_sAuthor	= sAuthor;
 		
 		// get all chapter
 		while( true )
 		{
 			auto pLink = HTMLParser::FindContentBetweenTag( rHtmlContent, m_BookChapterTag, uPos1 );
-			if( pLink.first == string::npos || pLink.first > uPos2 )
+			if( pLink.first == wstring::npos || pLink.first > uPos2 )
 			{
 				break;
 			}
 			else
 			{
-				if( pLink.second == "&nbsp;" )
+				if( pLink.second == L"&nbsp;" )
 					break;
 
 				auto slink = HTMLParser::AnalyzeLink( pLink.second );
@@ -98,10 +98,10 @@ std::pair<std::string,std::vector<BookIndex>> Wenku8Cn::AnalyzeIndexPage( std::s
 	return make_pair( sTitle, vBookLinks );
 }
 
-string Wenku8Cn::GetChapterContent( const string& rHtml )
+wstring Wenku8Cn::GetChapterContent( const wstring& rHtml )
 {
 	auto pContent = HTMLParser::FindContentBetweenTag( rHtml, m_ContentTag );
-	if( pContent.first != string::npos )
+	if( pContent.first != wstring::npos )
 	{
 		boost::algorithm::replace_all( pContent.second, "<ul ", "<!--" );
 		boost::algorithm::replace_all( pContent.second, "</ul>", " -->" );
@@ -109,17 +109,17 @@ string Wenku8Cn::GetChapterContent( const string& rHtml )
 		return pContent.second;
 	}
 
-	return "";
+	return L"";
 }
 
-vector< pair<size_t,string> > Wenku8Cn::FindAllImage( const string& rHTML, size_t uPos )
+vector< pair<size_t,wstring> > Wenku8Cn::FindAllImage( const wstring& rHTML, size_t uPos )
 {
-	vector< pair<size_t,string> > vRes;
+	vector< pair<size_t,wstring> > vRes;
 	size_t uStartPos = uPos;
 	while( true )
 	{
 		auto pImg = HTMLParser::FindContentBetweenTag( rHTML, m_ImageTag, uStartPos );
-		if( pImg.first == string::npos )
+		if( pImg.first == wstring::npos )
 			break;
 		else
 		{

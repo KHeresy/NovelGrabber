@@ -50,14 +50,14 @@ public:
 class HTMLParser
 {
 public:
-	typedef std::map< std::string,boost::optional<std::string> >	TAttributes;
+	typedef std::map< std::wstring, boost::optional<std::wstring> >	TAttributes;
 
 public:
-	static void FindTag( const std::string& rHtml, const std::string& rTag, const std::map< std::string, boost::optional<std::string> >& rAttribute, size_t uStartPos = 0 );
+	static void FindTag( const std::wstring& rHtml, const std::wstring& rTag, const std::map< std::wstring, boost::optional<std::wstring> >& rAttribute, size_t uStartPos = 0 );
 
-	static std::pair<size_t,std::string> FindContentBetweenTag( const std::string& rHtml, const std::pair<std::string,std::string>& rTag, size_t uStartPos = 0 );
+	static std::pair<size_t,std::wstring> FindContentBetweenTag( const std::wstring& rHtml, const std::pair<std::wstring,std::wstring>& rTag, size_t uStartPos = 0 );
 
-	static boost::optional< std::pair<std::string,std::string> > AnalyzeLink( const std::string& rHtml, size_t uStartPos = 0 );
+	static boost::optional< std::pair<std::wstring,std::wstring> > AnalyzeLink( const std::wstring& rHtml, size_t uStartPos = 0 );
 };
 
 class HttpClient
@@ -69,15 +69,15 @@ public:
 public:
 	HttpClient();
 
-	boost::optional<std::string> ReadHtml( const std::string& rServer, const std::string& rPath );
+	boost::optional<std::wstring> ReadHtml( const std::string& rServer, const std::string& rPath );
 
-	boost::optional<std::string> ReadHtml( const std::string& sURL )
+	boost::optional<std::wstring> ReadHtml( const std::string& sURL )
 	{
 		auto pLink = ParseURL( sURL );
 		if( pLink )
 			return ReadHtml( pLink->first, pLink->second );
 
-		return boost::optional<std::string>();
+		return boost::optional<std::wstring>();
 	}
 
 	bool GetBinaryFile( const std::string& rServer, const std::string& rPath, const std::wstring& rFilename );
