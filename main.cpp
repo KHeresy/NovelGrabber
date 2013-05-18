@@ -3,12 +3,15 @@
 // STL Header
 #include <codecvt>
 #include <fstream>
+#include <map>
 #include <iostream>
 #include <string>
 
 #include <process.h>
 
 // Boost Header
+#include <boost/algorithm/string.hpp>
+#include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <boost/locale.hpp>
@@ -29,6 +32,27 @@ boost::filesystem::path g_sOutPath = boost::filesystem::current_path();
 inline std::string GetTmpFileName()
 {
 	return boost::filesystem::unique_path().string();
+}
+
+inline std::wstring VertifyFilename( const std::wstring& sFilename )
+{
+	static wstring wsCHarMap1 = L"\\/:*\"|<>?!'";
+	static wstring wsCHarMap2 = boost::locale::conv::utf_to_utf<wchar_t>( "\xEF\xBC\xBC\xEF\xBC\x8F\xEF\xBC\x9A\xEF\xBC\x8A\xEF\xBC\x82\xEF\xBD\x9C\xEF\xBC\x9C\xEF\xBC\x9E\xEF\xBC\x9F\xEF\xBC\x81\xE2\x80\x99" );
+
+	std::wstring sNewName = sFilename;
+	while( true )
+	{
+		size_t uPos = sNewName.find_first_of( wsCHarMap1 );
+		if( uPos == wstring::npos )
+			break;
+
+		auto x1 = sNewName[uPos];
+		auto x2 = wsCHarMap1.find( sNewName[uPos] );
+		auto x3 = wsCHarMap1[ wsCHarMap1.find( sNewName[uPos] ) ];
+
+		sNewName[uPos] = wsCHarMap2[ wsCHarMap1.find( sNewName[uPos] ) ];
+	}
+	return sNewName;
 }
 
 inline std::wstring ConvertSC2TC( const std::wstring& sText )
@@ -165,7 +189,7 @@ int main(int argc, char* argv[])
 			cout << " >Found " << vBooks.second.size() << " books" << endl;
 
 			// check directory
-			g_sOutPath = sDir;
+			g_sOutPath = sDir.wstring();
 			if( !boost::filesystem::exists( g_sOutPath ) )
 				boost::filesystem::create_directories( g_sOutPath );
 			if( !bNoDLImage && !boost::filesystem::exists( g_sOutPath / sImage ) )
@@ -178,9 +202,10 @@ int main(int argc, char* argv[])
 				wstring sBookName = ConvertSC2TC( rBook.m_sTitle + L".html" );
 				wcout << " Start process book <" << sBookName << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;
 
-				if( bOverWrite || !boost::filesystem::exists( ( g_sOutPath / sBookName ).string() ) )
+				auto fnBook = g_sOutPath / VertifyFilename( sBookName );
+				if( bOverWrite || !boost::filesystem::exists( fnBook ) )
 				{
-					wofstream oFile( ( g_sOutPath / sBookName ).string() );
+					wofstream oFile( fnBook.wstring() );
 					oFile.imbue( g_locUTF8 );
 					if( oFile.is_open() )
 					{
@@ -223,14 +248,14 @@ int main(int argc, char* argv[])
 											auto sFile = HttpClient::GetFilename( SConv( rImg.second ) );
 											if( sFile )
 											{
-												boost::filesystem::path sFileName = sImage / *sFile;
-												wstring sFilename = SConv( ( g_sOutPath / sFileName ).string() );
-												if( bOverWrite || !boost::filesystem::exists( sFilename ) )
+												boost::filesystem::path sFileName = g_sOutPath / sImage / *sFile;
+
+												if( bOverWrite || !boost::filesystem::exists( sFileName ) )
 												{
-													mClient.GetBinaryFile( SConv( rImg.second ), sFilename );
+													mClient.GetBinaryFile( SConv( rImg.second ), sFileName.wstring() );
 												}
-												sHTML->replace( uShift + rImg.first, rImg.second.size(), SConv( sFileName.string() ) );
-												uShift += sFileName.string().size() - rImg.second.size();
+												sHTML->replace( uShift + rImg.first, rImg.second.size(), sFileName.wstring() );
+												uShift += sFileName.wstring().size() - rImg.second.size();
 											}
 										}
 									}
@@ -242,7 +267,7 @@ int main(int argc, char* argv[])
 						oFile.close();
 	
 						cout << "  Convert from SC to TC" << endl;
-						ExternCommand( ( g_sOutPath / sBookName ).string() );
+						ExternCommand( fnBook.string() );
 	
 						cout << "  Book output finished" << endl; 
 					}
