@@ -1,7 +1,6 @@
 #pragma region Header Files
 
 // STL Header
-#include <chrono>
 #include <codecvt>
 #include <fstream>
 #include <iostream>
@@ -29,7 +28,7 @@ boost::filesystem::path g_sOutPath = boost::filesystem::current_path();
 
 inline std::string GetTmpFileName()
 {
-	return ( g_sOutPath / ( boost::format( "%1%" ) % chrono::duration_cast<chrono::microseconds>( chrono::system_clock::now().time_since_epoch() ).count() ).str() ).string();
+	return boost::filesystem::unique_path().string();
 }
 
 inline std::wstring toUTF8( const std::string& rS )
@@ -90,10 +89,12 @@ inline void ExternCommand( const string& sFile )
 
 int main(int argc, char* argv[])
 {
+	// Set locale for Chinese
 	locale::global( g_locUTF8 );
 	cout.imbue( g_locUTF8 );
 	wcout.imbue( g_locUTF8 );
 
+	// some variables
 	bool	bNoDLImage;
 	bool	bOverWrite;
 	string	sURL;
@@ -144,9 +145,9 @@ int main(int argc, char* argv[])
 	// check directory
 	g_sOutPath = sDir;
 	if( !boost::filesystem::exists( g_sOutPath ) )
-		boost::filesystem::create_directory( g_sOutPath );
+		boost::filesystem::create_directories( g_sOutPath );
 	if( !bNoDLImage && !boost::filesystem::exists( g_sOutPath / sImage ) )
-		boost::filesystem::create_directory( g_sOutPath / sImage );
+		boost::filesystem::create_directories( g_sOutPath / sImage );
 	wcout << "Output to " << g_sOutPath << endl;
 
 	HttpClient mClient;
