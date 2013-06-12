@@ -15,7 +15,7 @@ Wenku8Cn::Wenku8Cn()
 	m_wsAuthorPrefix	= boost::locale::conv::utf_to_utf<wchar_t>( "\xE4\xBD\x9C\xE8\x80\x85\xEF\xBC\x9A" );
 	m_TitleTag			= make_pair( L"<div id=\"title\">",					L"</div>" );
 	m_AuthorTag			= make_pair( L"<div id=\"info\">",					L"</div>" );
-	m_BookTitleTag		= make_pair( L"<td colspan=\"4\" class=\"vcss\">",	L"</td>" );
+	m_BookTitleTag		= make_pair( L"<td class=\"vcss\" colspan=\"4\">",	L"</td>" );
 	m_BookChapterTag	= make_pair( L"<td class=\"ccss\">",				L"</td>" );
 	m_ContentTag		= make_pair( L"<div id=\"content\">",				L"\n</div>" );
 	m_ImageTag			= make_pair( L"<img src=\"",						L"\" border=\"0\" class=\"imagecontent\">" );
