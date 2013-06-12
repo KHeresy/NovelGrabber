@@ -101,7 +101,7 @@ inline std::wstring ConvertSC2TC( const std::wstring& sText )
 inline void ExternCommand( const string& sFile )
 {
 	static string	sOpenCC		= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
-	static string	sCalibre	= "";
+	static string	sCalibre	= "Binary\\Calibre2\\ebook-convert.exe \"%1%\" \"%2%\"";
 
 	string sTmpFile1 = GetTmpFileName();
 	string sTmpFile2 = sTmpFile1 + ".tmp2";
@@ -111,11 +111,15 @@ inline void ExternCommand( const string& sFile )
 	boost::filesystem::rename( sFile, sTmpFile1 );
 
 	// execut OpenCC command
-	system( ( boost::format( sOpenCC ) % sTmpFile1.c_str() % sTmpFile2.c_str() ).str().c_str() );
+	system( ( boost::format( sOpenCC ) % sTmpFile1 % sTmpFile2 ).str().c_str() );
 
 	// rename and remove file
 	boost::filesystem::rename( sTmpFile2, sFile );
 	boost::filesystem::remove( sTmpFile1 );
+
+	// convert to mobi
+	cout << ( boost::format( sCalibre ) % sFile % boost::filesystem::path(sFile).replace_extension( "mobi" ).string() ).str().c_str() << endl;
+	system( ( boost::format( sCalibre ) % sFile % boost::filesystem::path(sFile).replace_extension( "mobi" ).string() ).str().c_str() );
 }
 
 inline string SConv( const wstring& wsStr )
@@ -138,6 +142,7 @@ int main(int argc, char* argv[])
 	// some variables
 	bool	bNoDLImage;
 	bool	bOverWrite;
+	int		iRetryTimes = 100;
 	string	sURL;
 	boost::filesystem::path	sDir;
 	boost::filesystem::path	sImage = "images";
@@ -255,7 +260,7 @@ int main(int argc, char* argv[])
 									auto vImg = mSite.FindAllImage( *sHTML );
 									if( vImg.size() > 0 )
 									{
-										cout << "      Found " << vImg.size() << " images";
+										cout << "      Found " << vImg.size() << " images\n";
 										size_t uShift = 0;
 										for( auto& rImg : vImg )
 										{
@@ -263,17 +268,31 @@ int main(int argc, char* argv[])
 											auto sFile = HttpClient::GetFilename( sLink );
 											if( sFile )
 											{
+												cout << "        " << *sFile ;
 												boost::filesystem::path sImagePath = sImage / *sFile;
 												boost::filesystem::path sFileName = g_sOutPath / sImagePath;
 
 												if( bOverWrite || !boost::filesystem::exists( sFileName ) )
 												{
-													mClient.GetBinaryFile( sLink, sFileName.wstring() );
+													int iTime = 0;
+													bool bOK = false;
+													while( ++iTime < iRetryTimes )
+													{
+														cout << "." << flush;
+														bOK = mClient.GetBinaryFile( sLink, sFileName.wstring() );
+														if( bOK )
+															break;
+													}
+													if( bOK )
+														cout << " OK" << endl;
+													else
+														cout << " Failed" << endl;
 												}
+												else
+													cout << " skipped" << endl;
 												sHTML->replace( uShift + rImg.first, rImg.second.size(), sImagePath.wstring() );
 												uShift += sImagePath.wstring().size() - rImg.second.size();
 											}
-											cout << "." << flush;
 										}
 										cout << endl;
 									}
