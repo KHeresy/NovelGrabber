@@ -100,7 +100,8 @@ inline std::wstring ConvertSC2TC( const std::wstring& sText )
 
 inline void ExternCommand( const string& sFile )
 {
-	static string	sOpenCC	= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
+	static string	sOpenCC		= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
+	static string	sCalibre	= "";
 
 	string sTmpFile1 = GetTmpFileName();
 	string sTmpFile2 = sTmpFile1 + ".tmp2";

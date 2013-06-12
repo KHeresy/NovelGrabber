@@ -53,7 +53,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_SCL_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\boost153</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\boost153;..\HttpClientLite</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -71,7 +71,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\boost153</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\boost153;..\HttpClientLite</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -82,14 +82,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="HttpClient.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="wenku8.cn.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BookDef.h" />
-    <ClInclude Include="HttpClient.h" />
     <ClInclude Include="wenku8.cn.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HttpClientLite\HttpClientLite.vcxproj">
+      <Project>{1e0b9ec4-4aea-4c47-98e8-84147bcf92c3}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
