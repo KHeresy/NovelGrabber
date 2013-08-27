@@ -3,13 +3,6 @@
 
 2. image may need to resize
 
-3. some name can't be saved
-  http://www.wenku8.cn/modules/article/reader.php?aid=1213
-
-6. test calibre and kindlegen for image
-
-7. opetional: test opencc library
-
 
 should done
 

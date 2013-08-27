@@ -68,7 +68,7 @@ inline std::wstring VertifyFilename( const std::wstring& sFilename )
 
 inline std::wstring ConvertSC2TC( const std::wstring& sText )
 {
-	static string	sOpenCC	= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw.ini";
+	static string	sOpenCC	= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zht.ini";
 
 	string sFile1 = GetTmpFileName();
 	string sFile2 = sFile1 + ".tmp2";
