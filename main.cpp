@@ -68,7 +68,7 @@ inline std::wstring VertifyFilename( const std::wstring& sFilename )
 
 inline std::wstring ConvertSC2TC( const std::wstring& sText )
 {
-	static string	sOpenCC	= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
+	static string	sOpenCC	= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw.ini";
 
 	string sFile1 = GetTmpFileName();
 	string sFile2 = sFile1 + ".tmp2";
@@ -222,7 +222,43 @@ int main(int argc, char* argv[])
 				wcout << " Start process book <" << sBookName << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;
 
 				auto fnBook = g_sOutPath / VertifyFilename( sBookName );
-				if( bOverWrite || !boost::filesystem::exists( fnBook ) )
+				// if file existed
+				bool bToDownload = true;
+				if( !bOverWrite && boost::filesystem::exists( fnBook ) )
+				{
+					bToDownload = false;
+
+					// read the index of existed html file
+					wifstream fExistedFile( fnBook.wstring() );
+					wstring sTmp;
+					int iCounter = 0;
+					while( !fExistedFile.eof() )
+					{
+						getline( fExistedFile, sTmp );
+						if( sTmp == L"<NAV>" )
+						{
+							while( !fExistedFile.eof() )
+							{
+								getline( fExistedFile, sTmp );
+								if( sTmp == L"</NAV>" )
+									break;
+								else
+									++iCounter;
+							}
+							break;
+						}
+					}
+					fExistedFile.close();
+					
+					// re-download if chapter number is not equal
+					if( iCounter != rBook.m_vChapter.size() )
+					{
+						bToDownload = true;
+						cout << "  Chapter number is not equal, redownload. ( " << iCounter << " != " << rBook.m_vChapter.size() << " )" << endl;
+					}
+				}
+
+				if( bToDownload )
 				{
 					wofstream oFile( fnBook.wstring() );
 					oFile.imbue( g_locUTF8 );
@@ -235,13 +271,13 @@ int main(int argc, char* argv[])
 						oFile << "<BODY>\n";
 						oFile << "<H3 ALIGN=\"CENTER\">" << rBook.m_sTitle << "</H3>\n";
 						oFile << "<H4 ALIGN=\"CENTER\">" << rBook.m_sAuthor << "</H4>\n";
-	
+
 						// index
 						oFile << "<A ID=\"INDEX\" /><HR>\n<NAV>\n";
 						size_t idxChapter = 0;
 						for( auto& rLink : rBook.m_vChapter )
 						{
-							oFile << "<p><a href=\"#CH" << ++idxChapter << "\">" << rLink.first << "</a></p>\n";
+							oFile << "<p><a href=\"#CH" << ++idxChapter << "\">" << rLink.first << "</a><!-- " << rLink.second << " --></p>\n";
 						}
 						oFile << "</NAV>\n";
 	
