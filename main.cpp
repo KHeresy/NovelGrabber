@@ -148,6 +148,7 @@ int main(int argc, char* argv[])
 	// some variables
 	bool	bNoDLImage;
 	bool	bOverWrite;
+	bool	bFileIndex;
 	int		iRetryTimes = 100;
 	string	sURL;
 	boost::filesystem::path	sDir;
@@ -163,6 +164,7 @@ int main(int argc, char* argv[])
 			( "help,H",			BPO::bool_switch()->notifier( [&bpoOptions]( bool bH ){ if( bH ){ std::cout << bpoOptions << std::endl; exit(0); } } ),	"Help message" )
 			( "url,U",			BPO::value(&sURL)->value_name("Web_Link"),							"The link of index page." )
 			( "output,O",		BPO::value(&sDir)->value_name("output_dir")->default_value("."),	"Directory to save output files" )
+			( "file_index",		BPO::bool_switch(&bFileIndex)->default_value(false),				"Add file index at the begin of file name")
 			( "no_dl_image",	BPO::bool_switch(&bNoDLImage)->default_value(false),				"Not download image" )
 			( "no_overwrite",	BPO::bool_switch(&bOverWrite)->default_value(false),				"Overwrite existed files" );
 
@@ -222,12 +224,23 @@ int main(int argc, char* argv[])
 			wcout << "Output to " << g_sOutPath << endl;
 
 			// write test
+			int idxBook = 0;
 			for( BookIndex& rBook : vBooks.second )
 			{
 				wstring sBookName = ConvertSC2TC( rBook.m_sTitle + L".html" );
 				wcout << " Start process book <" << sBookName << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;
 
-				auto fnBook = g_sOutPath / VertifyFilename( sBookName );
+				auto fnBook = g_sOutPath;
+				if (bFileIndex)
+				{
+					++idxBook;
+					fnBook /= ( boost::lexical_cast<wstring>(idxBook) + L"_" + VertifyFilename(sBookName) );
+				}
+				else
+				{
+					fnBook /= VertifyFilename(sBookName);
+				} 
+
 				// if file existed
 				bool bToDownload = true;
 				if( !bOverWrite && boost::filesystem::exists( fnBook ) )
