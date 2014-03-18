@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
 	bool	bNoDLImage;
 	bool	bOverWrite;
 	bool	bFileIndex;
-	int		iRetryTimes = 100;
+	int		iRetryTimes;
 	string	sURL;
 	string	sSearch;
 	string	sReplace;
@@ -168,6 +168,7 @@ int main(int argc, char* argv[])
 			( "help,H",			BPO::bool_switch()->notifier( [&bpoOptions]( bool bH ){ if( bH ){ std::cout << bpoOptions << std::endl; exit(0); } } ),	"Help message" )
 			( "url,U",			BPO::value(&sURL)->value_name("Web_Link"),							"The link of index page." )
 			( "output,O",		BPO::value(&sDir)->value_name("output_dir")->default_value("."),	"Directory to save output files" )
+			( "retry",			BPO::value(&iRetryTimes)->value_name("times")->default_value(100),	"HTTP retry times")
 			( "search",			BPO::value(&sSearch)->value_name("string")->default_value(""),		"Search text in book name, use with --replace")
 			( "replace",		BPO::value(&sReplace)->value_name("string")->default_value(""),		"Replace search trem with, use with --search")
 			( "encode",			BPO::value(&sEncode)->value_name("encode")->default_value("BIG5"),	"Encode of input argument, used for search/replace")
@@ -207,7 +208,7 @@ int main(int argc, char* argv[])
 	if (sSearch != "")
 	{
 		funcNameRefine = [&sSearch,&sReplace,&sEncode](wstring s){
-			return VertifyFilename( regex_replace(s, wregex(boost::locale::conv::to_utf<wchar_t>(sSearch, sEncode)), boost::locale::conv::to_utf<wchar_t>(sReplace, sEncode)) );
+			return regex_replace(VertifyFilename(s), wregex(boost::locale::conv::to_utf<wchar_t>(sSearch, sEncode)), boost::locale::conv::to_utf<wchar_t>(sReplace, sEncode));
 		};
 	}
 
@@ -220,7 +221,18 @@ int main(int argc, char* argv[])
 		{
 			boost::filesystem::path pathURL = boost::filesystem::path( sURL ).parent_path();
 
-			boost::optional<wstring> rHtml = mClient.ReadHtml( mURL->first, mURL->second );
+			int iTime = 0;
+			boost::optional<wstring> rHtml;
+			while (++iTime < iRetryTimes)
+			{
+				rHtml = mClient.ReadHtml(mURL->first, mURL->second);
+				if (rHtml)
+					break;
+			}
+
+			if (!rHtml)
+				cerr << "Can't open URL: " << sURL << endl;
+
 			auto vBooks = mSite.AnalyzeIndexPage( *rHtml );
 			if( vBooks.first == L"" )
 			{
@@ -324,7 +336,14 @@ int main(int argc, char* argv[])
 							oFile << "<HR><A ID=\"CH" << ++idxChapter << "\" /><H4>" << rLink.first << "</H4>\n";
 							wcout << "  > " << rLink.second << endl;
 	
-							auto sHTML = mClient.ReadHtml( CheckLink( SConv( rLink.second ), pathURL.string() ) );
+							int iBTime = 0;
+							boost::optional<wstring> sHTML;
+							while (++iBTime < iRetryTimes)
+							{
+								sHTML = mClient.ReadHtml(CheckLink(SConv(rLink.second), pathURL.string()));
+								if (sHTML)
+									break;
+							}
 							if( sHTML )
 							{
 								if( !bNoDLImage )
