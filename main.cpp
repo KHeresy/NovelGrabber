@@ -5,6 +5,7 @@
 #include <fstream>
 #include <map>
 #include <iostream>
+#include <regex>
 #include <string>
 
 #include <process.h>
@@ -151,6 +152,9 @@ int main(int argc, char* argv[])
 	bool	bFileIndex;
 	int		iRetryTimes = 100;
 	string	sURL;
+	string	sSearch;
+	string	sReplace;
+	string	sEncode;
 	boost::filesystem::path	sDir;
 	boost::filesystem::path	sImage = "images";
 
@@ -164,6 +168,9 @@ int main(int argc, char* argv[])
 			( "help,H",			BPO::bool_switch()->notifier( [&bpoOptions]( bool bH ){ if( bH ){ std::cout << bpoOptions << std::endl; exit(0); } } ),	"Help message" )
 			( "url,U",			BPO::value(&sURL)->value_name("Web_Link"),							"The link of index page." )
 			( "output,O",		BPO::value(&sDir)->value_name("output_dir")->default_value("."),	"Directory to save output files" )
+			( "search",			BPO::value(&sSearch)->value_name("string")->default_value(""),		"Search text in book name, use with --replace")
+			( "replace",		BPO::value(&sReplace)->value_name("string")->default_value(""),		"Replace search trem with, use with --search")
+			( "encode",			BPO::value(&sEncode)->value_name("encode")->default_value("BIG5"),	"Encode of input argument, used for search/replace")
 			( "file_index",		BPO::bool_switch(&bFileIndex)->default_value(false),				"Add file index at the begin of file name")
 			( "no_dl_image",	BPO::bool_switch(&bNoDLImage)->default_value(false),				"Not download image" )
 			( "no_overwrite",	BPO::bool_switch(&bOverWrite)->default_value(false),				"Overwrite existed files" );
@@ -195,6 +202,14 @@ int main(int argc, char* argv[])
 		}
 	}
 	#pragma endregion
+
+	function<wstring(wstring)> funcNameRefine = [](wstring s){ return VertifyFilename(s); };
+	if (sSearch != "")
+	{
+		funcNameRefine = [&sSearch,&sReplace,&sEncode](wstring s){
+			return VertifyFilename( regex_replace(s, wregex(boost::locale::conv::to_utf<wchar_t>(sSearch, sEncode)), boost::locale::conv::to_utf<wchar_t>(sReplace, sEncode)) );
+		};
+	}
 
 	HttpClient mClient;
 	auto mURL = HttpClient::ParseURL( sURL );
@@ -230,15 +245,17 @@ int main(int argc, char* argv[])
 				wstring sBookName = ConvertSC2TC( rBook.m_sTitle + L".html" );
 				wcout << " Start process book <" << sBookName << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;
 
+				sBookName = funcNameRefine(sBookName);
+
 				auto fnBook = g_sOutPath;
 				if (bFileIndex)
 				{
 					++idxBook;
-					fnBook /= ( boost::lexical_cast<wstring>(idxBook) + L"_" + VertifyFilename(sBookName) );
+					fnBook /= ( boost::lexical_cast<wstring>(idxBook) + L"_" + sBookName );
 				}
 				else
 				{
-					fnBook /= VertifyFilename(sBookName);
+					fnBook /= sBookName;
 				} 
 
 				// if file existed
