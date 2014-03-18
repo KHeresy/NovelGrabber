@@ -82,7 +82,13 @@ inline std::wstring ConvertSC2TC( const std::wstring& sText )
 		oFile << sText;
 		oFile.close();
 
-		system( ( boost::format( sOpenCC ) % sFile1.c_str() % sFile2.c_str() ).str().c_str() );
+		try{
+			system((boost::format(sOpenCC) % sFile1.c_str() % sFile2.c_str()).str().c_str());
+		}
+		catch (exception e)
+		{
+			cerr << e.what() << endl;
+		}
 
 		wifstream iFile( sFile2 );
 		if( iFile.is_open() )
