@@ -5,13 +5,13 @@
 #include <fstream>
 #include <map>
 #include <iostream>
-#include <regex>
 #include <string>
 
 #include <process.h>
 
 // Boost Header
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
@@ -211,210 +211,218 @@ int main(int argc, char* argv[])
 	if (sSearch != "")
 	{
 		funcNameRefine = [&sSearch,&sReplace,&sEncode](wstring s){
-			return regex_replace(VertifyFilename(s), wregex(boost::locale::conv::to_utf<wchar_t>(sSearch, sEncode)), boost::locale::conv::to_utf<wchar_t>(sReplace, sEncode));
+			wstring ss = VertifyFilename(s);
+			boost::replace_all(ss, boost::locale::conv::to_utf<wchar_t>(sSearch, sEncode), boost::locale::conv::to_utf<wchar_t>(sReplace, sEncode));
+			return ss;
 		};
 	}
 	#pragma endregion
 
-	HttpClient mClient;
-	cout << "Try to open: " << sURL << endl;
-	auto mURL = HttpClient::ParseURL( sURL );
-	if( mURL )
-	{
-		Wenku8Cn mSite;
-		if( mSite.CheckServer( mURL->first ) )
+	try{
+		HttpClient mClient;
+		cout << "Try to open: " << sURL << endl;
+		auto mURL = HttpClient::ParseURL(sURL);
+		if (mURL)
 		{
-			FS::path pathURL = FS::path( sURL ).parent_path();
-
-			int iTime = 0;
-			boost::optional<wstring> rHtml;
-			while (++iTime < iRetryTimes)
+			Wenku8Cn mSite;
+			if (mSite.CheckServer(mURL->first))
 			{
-				rHtml = mClient.ReadHtml(mURL->first, mURL->second);
-				if (rHtml)
-					break;
-			}
+				FS::path pathURL = FS::path(sURL).parent_path();
 
-			if (!rHtml)
-			{
-				cerr << "Can't open URL: " << sURL << endl;
-				return -1;
-			}
-
-			auto vBooks = mSite.AnalyzeIndexPage( *rHtml );
-			if( vBooks.first == L"" )
-			{
-				cerr << "Can't find book information" << endl;
-				return -1;
-			}
-			wstring sBN = ConvertSC2TC(vBooks.first);
-			wcout << L"Strat to download novel: " << sBN << "\n";
-			cout << " >Found " << vBooks.second.size() << " books" << endl;
-
-			// check directory
-			g_sOutPath = sDir / VertifyFilename(sBN);
-			if( !FS::exists( g_sOutPath ) )
-				FS::create_directories( g_sOutPath );
-			if( !bNoDLImage && !FS::exists( g_sOutPath / sImage ) )
-				FS::create_directories( g_sOutPath / sImage );
-			wcout << "Output to " << g_sOutPath << endl;
-
-			// write test
-			int idxBook = 0;
-			for( BookIndex& rBook : vBooks.second )
-			{
-				wstring sBookName = ConvertSC2TC( rBook.m_sTitle + L".html" );
-				wcout << " Start process book <" << sBookName << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;
-
-				sBookName = funcNameRefine(sBookName);
-
-				auto fnBook = g_sOutPath;
-				if (bFileIndex)
+				int iTime = 0;
+				boost::optional<wstring> rHtml;
+				while (++iTime < iRetryTimes)
 				{
-					++idxBook;
-					fnBook /= ( boost::lexical_cast<wstring>(idxBook) + L"_" + sBookName );
-				}
-				else
-				{
-					fnBook /= sBookName;
-				} 
-
-				// if file existed
-				bool bToDownload = true;
-				if( !bOverWrite && FS::exists( fnBook ) )
-				{
-					bToDownload = false;
-
-					// read the index of existed html file
-					wifstream fExistedFile( fnBook.wstring() );
-					wstring sTmp;
-					int iCounter = 0;
-					while( !fExistedFile.eof() )
-					{
-						getline( fExistedFile, sTmp );
-						if( sTmp == L"<NAV>" )
-						{
-							while( !fExistedFile.eof() )
-							{
-								getline( fExistedFile, sTmp );
-								if( sTmp == L"</NAV>" )
-									break;
-								else
-									++iCounter;
-							}
-							break;
-						}
-					}
-					fExistedFile.close();
-					
-					// re-download if chapter number is not equal
-					if( iCounter != rBook.m_vChapter.size() )
-					{
-						bToDownload = true;
-						cout << "  Chapter number is not equal, redownload. ( " << iCounter << " != " << rBook.m_vChapter.size() << " )" << endl;
-					}
+					rHtml = mClient.ReadHtml(mURL->first, mURL->second);
+					if (rHtml)
+						break;
 				}
 
-				if( bToDownload )
+				if (!rHtml)
 				{
-					wofstream oFile( fnBook.wstring() );
-					oFile.imbue( g_locUTF8 );
-					if( oFile.is_open() )
+					cerr << "Can't open URL: " << sURL << endl;
+					return -1;
+				}
+
+				auto vBooks = mSite.AnalyzeIndexPage(*rHtml);
+				if (vBooks.first == L"")
+				{
+					cerr << "Can't find book information" << endl;
+					return -1;
+				}
+				wstring sBN = ConvertSC2TC(vBooks.first);
+				wcout << L"Strat to download novel: " << sBN << "\n";
+				cout << " >Found " << vBooks.second.size() << " books" << endl;
+
+				// check directory
+				g_sOutPath = sDir / VertifyFilename(sBN);
+				if (!FS::exists(g_sOutPath))
+					FS::create_directories(g_sOutPath);
+				if (!bNoDLImage && !FS::exists(g_sOutPath / sImage))
+					FS::create_directories(g_sOutPath / sImage);
+				wcout << "Output to " << g_sOutPath << endl;
+
+				// write test
+				int idxBook = 0;
+				for (BookIndex& rBook : vBooks.second)
+				{
+					wstring sBookName = ConvertSC2TC(rBook.m_sTitle + L".html");
+					wcout << " Start process book <" << sBookName << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;
+
+					sBookName = funcNameRefine(sBookName);
+
+					auto fnBook = g_sOutPath;
+					if (bFileIndex)
 					{
-						oFile << "<HTML>\n";
-						oFile << "<HEAD>\n<META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n";
-						oFile << "<TITLE>" << rBook.m_sTitle << "</TITLE>\n";
-						oFile << "<META name=\"Author\" content=\"" << rBook.m_sAuthor << "\">\n</HEAD>\n";
-						oFile << "<BODY>\n";
-						oFile << "<H3 ALIGN=\"CENTER\">" << rBook.m_sTitle << "</H3>\n";
-						oFile << "<H4 ALIGN=\"CENTER\">" << rBook.m_sAuthor << "</H4>\n";
-
-						// index
-						oFile << "<A ID=\"INDEX\" /><HR>\n<NAV>\n";
-						size_t idxChapter = 0;
-						for( auto& rLink : rBook.m_vChapter )
-						{
-							oFile << "<p><a href=\"#CH" << ++idxChapter << "\">" << rLink.first << "</a><!-- " << rLink.second << " --></p>\n";
-						}
-						oFile << "</NAV>\n";
-	
-						// content
-						idxChapter = 0;
-						for( auto& rLink : rBook.m_vChapter )
-						{
-							oFile << "<HR><A ID=\"CH" << ++idxChapter << "\" /><H4>" << rLink.first << "</H4>\n";
-							wcout << "  > " << rLink.second << endl;
-	
-							int iBTime = 0;
-							boost::optional<wstring> sHTML;
-							while (++iBTime < iRetryTimes)
-							{
-								sHTML = mClient.ReadHtml(CheckLink(SConv(rLink.second), pathURL.string()));
-								if (sHTML)
-									break;
-							}
-							if( sHTML )
-							{
-								if( !bNoDLImage )
-								{
-									auto vImg = mSite.FindAllImage( *sHTML );
-									if( vImg.size() > 0 )
-									{
-										cout << "      Found " << vImg.size() << " images\n";
-										size_t uShift = 0;
-										for( auto& rImg : vImg )
-										{
-											string sLink = CheckLink( SConv( rImg.second ), pathURL.string() );
-											auto sFile = HttpClient::GetFilename( sLink );
-											if( sFile )
-											{
-												cout << "        " << *sFile ;
-												FS::path sImagePath = sImage / *sFile;
-												FS::path sFileName = g_sOutPath / sImagePath;
-
-												if( bOverWrite || !FS::exists( sFileName ) )
-												{
-													int iTime = 0;
-													bool bOK = false;
-													while( ++iTime < iRetryTimes )
-													{
-														cout << "." << flush;
-														bOK = mClient.GetBinaryFile( sLink, sFileName.wstring() );
-														if( bOK )
-															break;
-													}
-													if( bOK )
-														cout << " OK" << endl;
-													else
-														cout << " Failed" << endl;
-												}
-												else
-													cout << " skipped" << endl;
-												sHTML->replace( uShift + rImg.first, rImg.second.size(), sImagePath.wstring() );
-												uShift += sImagePath.wstring().size() - rImg.second.size();
-											}
-										}
-										cout << endl;
-									}
-								}
-								oFile << mSite.GetChapterContent( *sHTML );
-							}
-						}
-						oFile << "</BODY></HTML>\n";
-						oFile.close();
-	
-						cout << "  Convert from SC to TC" << endl;
-						ExternCommand( fnBook.string() );
-	
-						cout << "  Book output finished" << endl; 
+						++idxBook;
+						fnBook /= (boost::lexical_cast<wstring>(idxBook)+L"_" + sBookName);
 					}
 					else
 					{
-						 cerr << " Can't open the file to output" << endl;
+						fnBook /= sBookName;
+					}
+
+					// if file existed
+					bool bToDownload = true;
+					if (!bOverWrite && FS::exists(fnBook))
+					{
+						bToDownload = false;
+
+						// read the index of existed html file
+						wifstream fExistedFile(fnBook.wstring());
+						wstring sTmp;
+						int iCounter = 0;
+						while (!fExistedFile.eof())
+						{
+							getline(fExistedFile, sTmp);
+							if (sTmp == L"<NAV>")
+							{
+								while (!fExistedFile.eof())
+								{
+									getline(fExistedFile, sTmp);
+									if (sTmp == L"</NAV>")
+										break;
+									else
+										++iCounter;
+								}
+								break;
+							}
+						}
+						fExistedFile.close();
+
+						// re-download if chapter number is not equal
+						if (iCounter != rBook.m_vChapter.size())
+						{
+							bToDownload = true;
+							cout << "  Chapter number is not equal, redownload. ( " << iCounter << " != " << rBook.m_vChapter.size() << " )" << endl;
+						}
+					}
+
+					if (bToDownload)
+					{
+						wofstream oFile(fnBook.wstring());
+						oFile.imbue(g_locUTF8);
+						if (oFile.is_open())
+						{
+							oFile << "<HTML>\n";
+							oFile << "<HEAD>\n<META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n";
+							oFile << "<TITLE>" << rBook.m_sTitle << "</TITLE>\n";
+							oFile << "<META name=\"Author\" content=\"" << rBook.m_sAuthor << "\">\n</HEAD>\n";
+							oFile << "<BODY>\n";
+							oFile << "<H3 ALIGN=\"CENTER\">" << rBook.m_sTitle << "</H3>\n";
+							oFile << "<H4 ALIGN=\"CENTER\">" << rBook.m_sAuthor << "</H4>\n";
+
+							// index
+							oFile << "<A ID=\"INDEX\" /><HR>\n<NAV>\n";
+							size_t idxChapter = 0;
+							for (auto& rLink : rBook.m_vChapter)
+							{
+								oFile << "<p><a href=\"#CH" << ++idxChapter << "\">" << rLink.first << "</a><!-- " << rLink.second << " --></p>\n";
+							}
+							oFile << "</NAV>\n";
+
+							// content
+							idxChapter = 0;
+							for (auto& rLink : rBook.m_vChapter)
+							{
+								oFile << "<HR><A ID=\"CH" << ++idxChapter << "\" /><H4>" << rLink.first << "</H4>\n";
+								wcout << "  > " << rLink.second << endl;
+
+								int iBTime = 0;
+								boost::optional<wstring> sHTML;
+								while (++iBTime < iRetryTimes)
+								{
+									sHTML = mClient.ReadHtml(CheckLink(SConv(rLink.second), pathURL.string()));
+									if (sHTML)
+										break;
+								}
+								if (sHTML)
+								{
+									if (!bNoDLImage)
+									{
+										auto vImg = mSite.FindAllImage(*sHTML);
+										if (vImg.size() > 0)
+										{
+											cout << "      Found " << vImg.size() << " images\n";
+											size_t uShift = 0;
+											for (auto& rImg : vImg)
+											{
+												string sLink = CheckLink(SConv(rImg.second), pathURL.string());
+												auto sFile = HttpClient::GetFilename(sLink);
+												if (sFile)
+												{
+													cout << "        " << *sFile;
+													FS::path sImagePath = sImage / *sFile;
+													FS::path sFileName = g_sOutPath / sImagePath;
+
+													if (bOverWrite || !FS::exists(sFileName))
+													{
+														int iTime = 0;
+														bool bOK = false;
+														while (++iTime < iRetryTimes)
+														{
+															cout << "." << flush;
+															bOK = mClient.GetBinaryFile(sLink, sFileName.wstring());
+															if (bOK)
+																break;
+														}
+														if (bOK)
+															cout << " OK" << endl;
+														else
+															cout << " Failed" << endl;
+													}
+													else
+														cout << " skipped" << endl;
+													sHTML->replace(uShift + rImg.first, rImg.second.size(), sImagePath.wstring());
+													uShift += sImagePath.wstring().size() - rImg.second.size();
+												}
+											}
+											cout << endl;
+										}
+									}
+									oFile << mSite.GetChapterContent(*sHTML);
+								}
+							}
+							oFile << "</BODY></HTML>\n";
+							oFile.close();
+
+							cout << "  Convert from SC to TC" << endl;
+							ExternCommand(fnBook.string());
+
+							cout << "  Book output finished" << endl;
+						}
+						else
+						{
+							cerr << " Can't open the file to output" << endl;
+						}
 					}
 				}
 			}
 		}
+	}
+	catch (exception e)
+	{
+		cerr << e.what() << endl;
 	}
 	return 0;
 }
