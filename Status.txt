@@ -1,13 +1,9 @@
 1. OpenCC Convert error
   http://www.wenku8.cn/modules/article/reader.php?aid=1213&cid=46025
+  http://www.wenku8.cn/modules/article/reader.php?aid=1132
 
 2. image may need to resize
 
+3. Error log
 
-should done
-
-3. Now try to use libiconv and opencc command line tools for conversion
-    But the _wsystem command can't work for some char
-    ex: http://www.wenku8.cn/modules/article/reader.php?aid=1213
-
-8. file name converter?
+4. OpenCC may effect following input? (replace not work)
