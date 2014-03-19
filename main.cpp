@@ -28,8 +28,8 @@ using namespace std;
 namespace FS = boost::filesystem;
 
 // global object
-locale g_locUTF8( locale(""), new codecvt_utf8<wchar_t>() );
-FS::path g_sOutPath = FS::current_path();
+locale		g_locUTF8( locale(""), new codecvt_utf8<wchar_t>() );
+FS::path	g_sOutPath = FS::current_path();
 
 inline string GetTmpFileName()
 {
@@ -206,6 +206,7 @@ int main(int argc, char* argv[])
 	}
 	#pragma endregion
 
+	#pragma region configuration by options
 	function<wstring(wstring)> funcNameRefine = [](wstring s){ return VertifyFilename(s); };
 	if (sSearch != "")
 	{
@@ -213,8 +214,10 @@ int main(int argc, char* argv[])
 			return regex_replace(VertifyFilename(s), wregex(boost::locale::conv::to_utf<wchar_t>(sSearch, sEncode)), boost::locale::conv::to_utf<wchar_t>(sReplace, sEncode));
 		};
 	}
+	#pragma endregion
 
 	HttpClient mClient;
+	cout << "Try to open: " << sURL << endl;
 	auto mURL = HttpClient::ParseURL( sURL );
 	if( mURL )
 	{
@@ -233,7 +236,10 @@ int main(int argc, char* argv[])
 			}
 
 			if (!rHtml)
+			{
 				cerr << "Can't open URL: " << sURL << endl;
+				return -1;
+			}
 
 			auto vBooks = mSite.AnalyzeIndexPage( *rHtml );
 			if( vBooks.first == L"" )
@@ -241,11 +247,12 @@ int main(int argc, char* argv[])
 				cerr << "Can't find book information" << endl;
 				return -1;
 			}
-			wcout << L"Strat to download novel: " << vBooks.first << "\n";
+			wstring sBN = ConvertSC2TC(vBooks.first);
+			wcout << L"Strat to download novel: " << sBN << "\n";
 			cout << " >Found " << vBooks.second.size() << " books" << endl;
 
 			// check directory
-			g_sOutPath = sDir / VertifyFilename( ConvertSC2TC( vBooks.first ) );
+			g_sOutPath = sDir / VertifyFilename(sBN);
 			if( !FS::exists( g_sOutPath ) )
 				FS::create_directories( g_sOutPath );
 			if( !bNoDLImage && !FS::exists( g_sOutPath / sImage ) )
