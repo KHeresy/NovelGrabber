@@ -31,6 +31,18 @@ namespace FS = boost::filesystem;
 locale		g_locUTF8( locale(""), new codecvt_utf8<wchar_t>() );
 FS::path	g_sOutPath = FS::current_path();
 
+#pragma region wstring / string convetor
+inline string SConv(const wstring& wsStr)
+{
+	return boost::locale::conv::utf_to_utf<char>(wsStr);
+}
+
+inline wstring SConv(const string& sStr)
+{
+	return boost::locale::conv::utf_to_utf<wchar_t>(sStr);
+}
+#pragma endregion
+
 inline string GetTmpFileName()
 {
 	return FS::unique_path().string();
@@ -50,7 +62,7 @@ inline string CheckLink( const string& sUrl, const string& sPartent )
 inline wstring VertifyFilename( const wstring& sFilename )
 {
 	static wstring wsCHarMap1 = L"\\/:*\"|<>?!'";
-	static wstring wsCHarMap2 = boost::locale::conv::utf_to_utf<wchar_t>( "\xEF\xBC\xBC\xEF\xBC\x8F\xEF\xBC\x9A\xEF\xBC\x8A\xEF\xBC\x82\xEF\xBD\x9C\xEF\xBC\x9C\xEF\xBC\x9E\xEF\xBC\x9F\xEF\xBC\x81\xE2\x80\x99" );
+	static wstring wsCHarMap2 = SConv("\xEF\xBC\xBC\xEF\xBC\x8F\xEF\xBC\x9A\xEF\xBC\x8A\xEF\xBC\x82\xEF\xBD\x9C\xEF\xBC\x9C\xEF\xBC\x9E\xEF\xBC\x9F\xEF\xBC\x81\xE2\x80\x99");
 
 	wstring sNewName = sFilename;
 	while( true )
@@ -128,16 +140,6 @@ inline void ExternCommand( const string& sFile )
 	// convert to mobi
 	cout << ( boost::format( sCalibre ) % sFile % FS::path(sFile).replace_extension( "mobi" ).string() ).str().c_str() << endl;
 	system( ( boost::format( sCalibre ) % sFile % FS::path(sFile).replace_extension( "mobi" ).string() ).str().c_str() );
-}
-
-inline string SConv( const wstring& wsStr )
-{
-	return boost::locale::conv::utf_to_utf<char>( wsStr );
-}
-
-inline wstring SConv( const string& sStr )
-{
-	return boost::locale::conv::utf_to_utf<wchar_t>( sStr );
 }
 
 int main(int argc, char* argv[])
