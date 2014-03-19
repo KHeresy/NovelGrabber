@@ -25,17 +25,18 @@
 #pragma endregion
 
 using namespace std;
+namespace FS = boost::filesystem;
 
 // global object
 locale g_locUTF8( locale(""), new codecvt_utf8<wchar_t>() );
-boost::filesystem::path g_sOutPath = boost::filesystem::current_path();
+FS::path g_sOutPath = FS::current_path();
 
-inline std::string GetTmpFileName()
+inline string GetTmpFileName()
 {
-	return boost::filesystem::unique_path().string();
+	return FS::unique_path().string();
 }
 
-inline std::string CheckLink( const std::string& sUrl, const std::string& sPartent )
+inline string CheckLink( const string& sUrl, const string& sPartent )
 {
 	if( sUrl.size() > 10 && sUrl.substr( 0, 7 ) == "http://" )
 		return sUrl;
@@ -46,12 +47,12 @@ inline std::string CheckLink( const std::string& sUrl, const std::string& sParte
 	return sUrl;
 }
 
-inline std::wstring VertifyFilename( const std::wstring& sFilename )
+inline wstring VertifyFilename( const wstring& sFilename )
 {
 	static wstring wsCHarMap1 = L"\\/:*\"|<>?!'";
 	static wstring wsCHarMap2 = boost::locale::conv::utf_to_utf<wchar_t>( "\xEF\xBC\xBC\xEF\xBC\x8F\xEF\xBC\x9A\xEF\xBC\x8A\xEF\xBC\x82\xEF\xBD\x9C\xEF\xBC\x9C\xEF\xBC\x9E\xEF\xBC\x9F\xEF\xBC\x81\xE2\x80\x99" );
 
-	std::wstring sNewName = sFilename;
+	wstring sNewName = sFilename;
 	while( true )
 	{
 		size_t uPos = sNewName.find_first_of( wsCHarMap1 );
@@ -67,7 +68,7 @@ inline std::wstring VertifyFilename( const std::wstring& sFilename )
 	return sNewName;
 }
 
-inline std::wstring ConvertSC2TC( const std::wstring& sText )
+inline wstring ConvertSC2TC( const wstring& sText )
 {
 	static string	sOpenCC	= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zht.ini";
 
@@ -99,8 +100,8 @@ inline std::wstring ConvertSC2TC( const std::wstring& sText )
 			iFile.close();
 		}
 
-		boost::filesystem::remove( sFile1 );
-		boost::filesystem::remove( sFile2 );
+		FS::remove( sFile1 );
+		FS::remove( sFile2 );
 	}
 	return sResult;
 }
@@ -115,18 +116,18 @@ inline void ExternCommand( const string& sFile )
 	sTmpFile1 += ".tmp1";
 
 	// rename original file first
-	boost::filesystem::rename( sFile, sTmpFile1 );
+	FS::rename( sFile, sTmpFile1 );
 
 	// execut OpenCC command
 	system( ( boost::format( sOpenCC ) % sTmpFile1 % sTmpFile2 ).str().c_str() );
 
 	// rename and remove file
-	boost::filesystem::rename( sTmpFile2, sFile );
-	boost::filesystem::remove( sTmpFile1 );
+	FS::rename( sTmpFile2, sFile );
+	FS::remove( sTmpFile1 );
 
 	// convert to mobi
-	cout << ( boost::format( sCalibre ) % sFile % boost::filesystem::path(sFile).replace_extension( "mobi" ).string() ).str().c_str() << endl;
-	system( ( boost::format( sCalibre ) % sFile % boost::filesystem::path(sFile).replace_extension( "mobi" ).string() ).str().c_str() );
+	cout << ( boost::format( sCalibre ) % sFile % FS::path(sFile).replace_extension( "mobi" ).string() ).str().c_str() << endl;
+	system( ( boost::format( sCalibre ) % sFile % FS::path(sFile).replace_extension( "mobi" ).string() ).str().c_str() );
 }
 
 inline string SConv( const wstring& wsStr )
@@ -146,7 +147,7 @@ int main(int argc, char* argv[])
 	cout.imbue( g_locUTF8 );
 	wcout.imbue( g_locUTF8 );
 
-	// some variables
+	#pragma region Variables
 	bool	bNoDLImage;
 	bool	bOverWrite;
 	bool	bFileIndex;
@@ -155,8 +156,9 @@ int main(int argc, char* argv[])
 	string	sSearch;
 	string	sReplace;
 	string	sEncode;
-	boost::filesystem::path	sDir;
-	boost::filesystem::path	sImage = "images";
+	FS::path	sDir;
+	FS::path	sImage = "images";
+	#pragma endregion
 
 	#pragma region Program Options
 	{
@@ -165,7 +167,7 @@ int main(int argc, char* argv[])
 		// define program options
 		BPO::options_description bpoOptions( "Command Line Options" );
 		bpoOptions.add_options()
-			( "help,H",			BPO::bool_switch()->notifier( [&bpoOptions]( bool bH ){ if( bH ){ std::cout << bpoOptions << std::endl; exit(0); } } ),	"Help message" )
+			( "help,H",			BPO::bool_switch()->notifier( [&bpoOptions]( bool bH ){ if( bH ){ cout << bpoOptions << endl; exit(0); } } ),	"Help message" )
 			( "url,U",			BPO::value(&sURL)->value_name("Web_Link"),							"The link of index page." )
 			( "output,O",		BPO::value(&sDir)->value_name("output_dir")->default_value("."),	"Directory to save output files" )
 			( "retry",			BPO::value(&iRetryTimes)->value_name("times")->default_value(100),	"HTTP retry times")
@@ -185,20 +187,20 @@ int main(int argc, char* argv[])
 		}
 		catch( BPO::error_with_option_name e )
 		{
-			std::cerr << e.what() << std::endl;
-			std::cout << bpoOptions << std::endl;
+			cerr << e.what() << endl;
+			cout << bpoOptions << endl;
 			return 1;
 		}
 		catch( BPO::error e )
 		{
-			std::cerr << e.what() << std::endl;
-			std::cout << bpoOptions << std::endl;
+			cerr << e.what() << endl;
+			cout << bpoOptions << endl;
 			return 1;
 		}
-		catch(std::exception e)
+		catch(exception e)
 		{
-			std::cerr << e.what() << std::endl;
-			std::cout << bpoOptions << std::endl;
+			cerr << e.what() << endl;
+			cout << bpoOptions << endl;
 			return 2;
 		}
 	}
@@ -219,7 +221,7 @@ int main(int argc, char* argv[])
 		Wenku8Cn mSite;
 		if( mSite.CheckServer( mURL->first ) )
 		{
-			boost::filesystem::path pathURL = boost::filesystem::path( sURL ).parent_path();
+			FS::path pathURL = FS::path( sURL ).parent_path();
 
 			int iTime = 0;
 			boost::optional<wstring> rHtml;
@@ -244,10 +246,10 @@ int main(int argc, char* argv[])
 
 			// check directory
 			g_sOutPath = sDir / VertifyFilename( ConvertSC2TC( vBooks.first ) );
-			if( !boost::filesystem::exists( g_sOutPath ) )
-				boost::filesystem::create_directories( g_sOutPath );
-			if( !bNoDLImage && !boost::filesystem::exists( g_sOutPath / sImage ) )
-				boost::filesystem::create_directories( g_sOutPath / sImage );
+			if( !FS::exists( g_sOutPath ) )
+				FS::create_directories( g_sOutPath );
+			if( !bNoDLImage && !FS::exists( g_sOutPath / sImage ) )
+				FS::create_directories( g_sOutPath / sImage );
 			wcout << "Output to " << g_sOutPath << endl;
 
 			// write test
@@ -272,7 +274,7 @@ int main(int argc, char* argv[])
 
 				// if file existed
 				bool bToDownload = true;
-				if( !bOverWrite && boost::filesystem::exists( fnBook ) )
+				if( !bOverWrite && FS::exists( fnBook ) )
 				{
 					bToDownload = false;
 
@@ -360,10 +362,10 @@ int main(int argc, char* argv[])
 											if( sFile )
 											{
 												cout << "        " << *sFile ;
-												boost::filesystem::path sImagePath = sImage / *sFile;
-												boost::filesystem::path sFileName = g_sOutPath / sImagePath;
+												FS::path sImagePath = sImage / *sFile;
+												FS::path sFileName = g_sOutPath / sImagePath;
 
-												if( bOverWrite || !boost::filesystem::exists( sFileName ) )
+												if( bOverWrite || !FS::exists( sFileName ) )
 												{
 													int iTime = 0;
 													bool bOK = false;
