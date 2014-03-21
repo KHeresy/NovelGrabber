@@ -120,7 +120,7 @@ inline wstring ConvertSC2TC( const wstring& sText )
 
 inline void ExternCommand( const string& sFile )
 {
-	static string	sOpenCC		= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zhtw_p.ini";
+	static string	sOpenCC		= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zht.ini";
 	static string	sCalibre	= "Binary\\Calibre2\\ebook-convert.exe \"%1%\" \"%2%\"";
 
 	string sTmpFile1 = GetTmpFileName();
