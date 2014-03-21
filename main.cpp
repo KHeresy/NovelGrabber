@@ -80,6 +80,13 @@ inline wstring VertifyFilename( const wstring& sFilename )
 	return sNewName;
 }
 
+inline bool SystemCommand( const string& rCmd )
+{
+	if (system(rCmd.c_str()))
+		return false;
+	return true;
+}
+
 inline wstring ConvertSC2TC( const wstring& sText )
 {
 	static string	sOpenCC	= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zht.ini";
@@ -96,24 +103,23 @@ inline wstring ConvertSC2TC( const wstring& sText )
 		oFile << sText;
 		oFile.close();
 
-		try{
-			system((boost::format(sOpenCC) % sFile1.c_str() % sFile2.c_str()).str().c_str());
-		}
-		catch (exception e)
+		if (SystemCommand((boost::format(sOpenCC) % sFile1.c_str() % sFile2.c_str()).str()))
 		{
-			cerr << e.what() << endl;
-		}
+			wifstream iFile(sFile2);
+			if (iFile.is_open())
+			{
+				iFile.imbue(g_locUTF8);
+				getline(iFile, sResult);
+				iFile.close();
+			}
 
-		wifstream iFile( sFile2 );
-		if( iFile.is_open() )
+			FS::remove(sFile1);
+			FS::remove(sFile2);
+		}
+		else
 		{
-			iFile.imbue( g_locUTF8 );
-			getline( iFile, sResult );
-			iFile.close();
+			//TODO: ERROR
 		}
-
-		FS::remove( sFile1 );
-		FS::remove( sFile2 );
 	}
 	return sResult;
 }
@@ -131,15 +137,27 @@ inline void ExternCommand( const string& sFile )
 	FS::rename( sFile, sTmpFile1 );
 
 	// execut OpenCC command
-	system( ( boost::format( sOpenCC ) % sTmpFile1 % sTmpFile2 ).str().c_str() );
+	if (SystemCommand((boost::format(sOpenCC) % sTmpFile1 % sTmpFile2).str()))
+	{
+		// rename and remove file
+		FS::rename(sTmpFile2, sFile);
+		FS::remove(sTmpFile1);
 
-	// rename and remove file
-	FS::rename( sTmpFile2, sFile );
-	FS::remove( sTmpFile1 );
-
-	// convert to mobi
-	cout << ( boost::format( sCalibre ) % sFile % FS::path(sFile).replace_extension( "mobi" ).string() ).str().c_str() << endl;
-	system( ( boost::format( sCalibre ) % sFile % FS::path(sFile).replace_extension( "mobi" ).string() ).str().c_str() );
+		// convert to mobi
+		cout << (boost::format(sCalibre) % sFile % FS::path(sFile).replace_extension("mobi").string()).str() << endl;
+		if (SystemCommand((boost::format(sCalibre) % sFile % FS::path(sFile).replace_extension("mobi").string()).str()))
+		{
+			//TODO: WORK
+		}
+		else
+		{
+			//TODO: ERROR
+		}
+	}
+	else
+	{
+		//TODO: ERROR
+	}
 }
 
 int main(int argc, char* argv[])
