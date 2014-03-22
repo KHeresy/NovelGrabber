@@ -7,8 +7,6 @@
 #include <iostream>
 #include <string>
 
-#include <process.h>
-
 // Boost Header
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -17,6 +15,14 @@
 #include <boost/format.hpp>
 #include <boost/locale.hpp>
 #include <boost/program_options.hpp>
+
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/sinks/sync_frontend.hpp>
+#include <boost/log/sinks/text_ostream_backend.hpp>
+#include <boost/log/support/date_time.hpp>
+#include <boost/log/utility/empty_deleter.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
 
 // application header
 #include "HttpClient.h"
@@ -83,7 +89,10 @@ inline wstring VertifyFilename( const wstring& sFilename )
 inline bool SystemCommand( const string& rCmd )
 {
 	if (system(rCmd.c_str()))
+	{
+		BOOST_LOG_TRIVIAL(error) << "System call failed: " << rCmd;
 		return false;
+	}
 	return true;
 }
 
@@ -118,7 +127,7 @@ inline wstring ConvertSC2TC( const wstring& sText )
 		}
 		else
 		{
-			//TODO: ERROR
+			BOOST_LOG_TRIVIAL(error) << "OpenCC Convert error! " << sText;
 		}
 	}
 	return sResult;
@@ -139,6 +148,8 @@ inline void ExternCommand( const string& sFile )
 	// execut OpenCC command
 	if (SystemCommand((boost::format(sOpenCC) % sTmpFile1 % sTmpFile2).str()))
 	{
+		BOOST_LOG_TRIVIAL(trace) << "OpenCC convert done";
+
 		// rename and remove file
 		FS::rename(sTmpFile2, sFile);
 		FS::remove(sTmpFile1);
@@ -147,16 +158,16 @@ inline void ExternCommand( const string& sFile )
 		cout << (boost::format(sCalibre) % sFile % FS::path(sFile).replace_extension("mobi").string()).str() << endl;
 		if (SystemCommand((boost::format(sCalibre) % sFile % FS::path(sFile).replace_extension("mobi").string()).str()))
 		{
-			//TODO: WORK
+			BOOST_LOG_TRIVIAL(trace) << "Calibre convert done";
 		}
 		else
 		{
-			//TODO: ERROR
+			BOOST_LOG_TRIVIAL(error) << "Calibre convert error!";
 		}
 	}
 	else
 	{
-		//TODO: ERROR
+		BOOST_LOG_TRIVIAL(error) << "OpenCC Convert error!";
 	}
 }
 
@@ -178,6 +189,7 @@ int main(int argc, char* argv[])
 	string	sEncode;
 	FS::path	sDir;
 	FS::path	sImage = "images";
+	FS::path	sLogFile;
 	#pragma endregion
 
 	#pragma region Program Options
@@ -191,6 +203,7 @@ int main(int argc, char* argv[])
 			( "url,U",			BPO::value(&sURL)->value_name("Web_Link"),							"The link of index page." )
 			( "output,O",		BPO::value(&sDir)->value_name("output_dir")->default_value("."),	"Directory to save output files" )
 			( "retry",			BPO::value(&iRetryTimes)->value_name("times")->default_value(100),	"HTTP retry times")
+			( "log",			BPO::value(&sLogFile)->value_name("log_file"),						"Log")
 			( "search",			BPO::value(&sSearch)->value_name("string")->default_value(""),		"Search text in book name, use with --replace")
 			( "replace",		BPO::value(&sReplace)->value_name("string")->default_value(""),		"Replace search trem with, use with --search")
 			( "encode",			BPO::value(&sEncode)->value_name("encode")->default_value("BIG5"),	"Encode of input argument, used for search/replace")
@@ -226,6 +239,33 @@ int main(int argc, char* argv[])
 	}
 	#pragma endregion
 
+	#pragma region Log System
+	boost::shared_ptr< boost::log::core > core = boost::log::core::get();
+	boost::shared_ptr< boost::log::sinks::text_ostream_backend > backend(new boost::log::sinks::text_ostream_backend());
+	backend->add_stream(boost::shared_ptr< std::ostream >(&std::clog, boost::empty_deleter()));
+	backend->auto_flush(true);
+
+	if (!sLogFile.empty())
+	{
+		boost::shared_ptr< std::ostream > fLog(new std::ofstream(sLogFile.string(), std::ofstream::app));
+		fLog->imbue(g_locUTF8);
+		backend->add_stream(fLog);
+	}
+
+	typedef boost::log::sinks::synchronous_sink< boost::log::sinks::text_ostream_backend > sink_t;
+	boost::shared_ptr< sink_t > sink(new sink_t(backend));
+	sink->set_formatter(
+		boost::log::expressions::stream << "[" << boost::log::trivial::severity << "]"
+		<< "[" << boost::log::expressions::format_date_time< boost::posix_time::ptime >("TimeStamp", "%Y-%m-%d %T") << "] "
+		<< boost::log::expressions::smessage
+	);
+	core->add_sink(sink);
+
+	// setup common attributes
+	boost::log::add_common_attributes();
+	BOOST_LOG_TRIVIAL(trace) << "Strat log system";
+	#pragma endregion
+
 	#pragma region configuration by options
 	function<wstring(wstring)> funcNameRefine = [](wstring s){ return VertifyFilename(s); };
 	if (sSearch != "")
@@ -240,7 +280,7 @@ int main(int argc, char* argv[])
 
 	try{
 		HttpClient mClient;
-		cout << "Try to open: " << sURL << endl;
+		BOOST_LOG_TRIVIAL(info) << "Try to open: " << sURL;
 		auto mURL = HttpClient::ParseURL(sURL);
 		if (mURL)
 		{
@@ -260,19 +300,19 @@ int main(int argc, char* argv[])
 
 				if (!rHtml)
 				{
-					cerr << "Can't open URL: " << sURL << endl;
+					BOOST_LOG_TRIVIAL(error) << "Can't open URL: " << sURL;
 					return -1;
 				}
 
 				auto vBooks = mSite.AnalyzeIndexPage(*rHtml);
 				if (vBooks.first == L"")
 				{
-					cerr << "Can't find book information" << endl;
+					BOOST_LOG_TRIVIAL(error) << "Can't find book information";
 					return -1;
 				}
 				wstring sBN = ConvertSC2TC(vBooks.first);
-				wcout << L"Strat to download novel: " << sBN << "\n";
-				cout << " >Found " << vBooks.second.size() << " books" << endl;
+				BOOST_LOG_TRIVIAL(trace) << L"Strat to download novel: " << sBN;
+				BOOST_LOG_TRIVIAL(info) << " >Found " << vBooks.second.size() << " books";
 
 				// check directory
 				g_sOutPath = sDir / VertifyFilename(sBN);
@@ -280,14 +320,14 @@ int main(int argc, char* argv[])
 					FS::create_directories(g_sOutPath);
 				if (!bNoDLImage && !FS::exists(g_sOutPath / sImage))
 					FS::create_directories(g_sOutPath / sImage);
-				wcout << "Output to " << g_sOutPath << endl;
+				BOOST_LOG_TRIVIAL(trace) << "Output to " << g_sOutPath;
 
 				// write test
 				int idxBook = 0;
 				for (BookIndex& rBook : vBooks.second)
 				{
 					wstring sBookName = ConvertSC2TC(rBook.m_sTitle + L".html");
-					wcout << " Start process book <" << sBookName << ">, with " << rBook.m_vChapter.size() << " chapters" << endl;
+					BOOST_LOG_TRIVIAL(trace) << " Start process book <" << sBookName << ">, with " << rBook.m_vChapter.size() << " chapters";
 
 					sBookName = funcNameRefine(sBookName);
 
@@ -334,7 +374,7 @@ int main(int argc, char* argv[])
 						if (iCounter != rBook.m_vChapter.size())
 						{
 							bToDownload = true;
-							cout << "  Chapter number is not equal, redownload. ( " << iCounter << " != " << rBook.m_vChapter.size() << " )" << endl;
+							BOOST_LOG_TRIVIAL(info) << "  Chapter number is not equal, redownload. ( " << iCounter << " != " << rBook.m_vChapter.size() << " )";
 						}
 					}
 
@@ -391,7 +431,7 @@ int main(int argc, char* argv[])
 												auto sFile = HttpClient::GetFilename(sLink);
 												if (sFile)
 												{
-													cout << "        " << *sFile;
+													BOOST_LOG_TRIVIAL(info) <<  "        " << *sFile;
 													FS::path sImagePath = sImage / *sFile;
 													FS::path sFileName = g_sOutPath / sImagePath;
 
@@ -401,18 +441,18 @@ int main(int argc, char* argv[])
 														bool bOK = false;
 														while (++iTime < iRetryTimes)
 														{
-															cout << "." << flush;
+															BOOST_LOG_TRIVIAL(trace) << ".";
 															bOK = mClient.GetBinaryFile(sLink, sFileName.wstring());
 															if (bOK)
 																break;
 														}
 														if (bOK)
-															cout << " OK" << endl;
+															BOOST_LOG_TRIVIAL(trace) << "OK";
 														else
-															cout << " Failed" << endl;
+															BOOST_LOG_TRIVIAL(error) << "Image <" << *sFile << "> download error.";
 													}
 													else
-														cout << " skipped" << endl;
+														BOOST_LOG_TRIVIAL(trace) << "SKIP";
 													sHTML->replace(uShift + rImg.first, rImg.second.size(), sImagePath.wstring());
 													uShift += sImagePath.wstring().size() - rImg.second.size();
 												}
@@ -426,15 +466,18 @@ int main(int argc, char* argv[])
 							oFile << "</BODY></HTML>\n";
 							oFile.close();
 
-							cout << "  Convert from SC to TC" << endl;
+							BOOST_LOG_TRIVIAL(trace) << "  Convert from SC to TC";
 							ExternCommand(fnBook.string());
-
-							cout << "  Book output finished" << endl;
+							BOOST_LOG_TRIVIAL(trace) << "  Book output finished";
 						}
 						else
 						{
-							cerr << " Can't open the file to output" << endl;
+							BOOST_LOG_TRIVIAL(error) << " Can't open the file to output";
 						}
+					}
+					else
+					{
+						BOOST_LOG_TRIVIAL(trace) << "  Skip this book.";
 					}
 				}
 			}
