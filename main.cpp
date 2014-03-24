@@ -49,9 +49,9 @@ inline wstring SConv(const string& sStr)
 }
 #pragma endregion
 
-inline string GetTmpFileName()
+inline wstring GetTmpFileName()
 {
-	return FS::unique_path().string();
+	return FS::unique_path().wstring();
 }
 
 inline string CheckLink( const string& sUrl, const string& sPartent )
@@ -86,9 +86,9 @@ inline wstring VertifyFilename( const wstring& sFilename )
 	return sNewName;
 }
 
-inline bool SystemCommand( const string& rCmd )
+inline bool SystemCommand( const wstring& rCmd )
 {
-	if (system(rCmd.c_str()))
+	if (system(SConv(rCmd).c_str()))
 	{
 		BOOST_LOG_TRIVIAL(error) << "System call failed: " << rCmd;
 		return false;
@@ -98,11 +98,11 @@ inline bool SystemCommand( const string& rCmd )
 
 inline wstring ConvertSC2TC( const wstring& sText )
 {
-	static string	sOpenCC	= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zht.ini";
+	static wstring	sOpenCC	= L"Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zht.ini";
 
-	string sFile1 = GetTmpFileName();
-	string sFile2 = sFile1 + ".tmp2";
-	sFile1 += ".tmp1";
+	wstring sFile1 = GetTmpFileName();
+	wstring sFile2 = sFile1 + L".tmp2";
+	sFile1 += L".tmp1";
 	wstring sResult;
 
 	wofstream oFile( sFile1 );
@@ -112,7 +112,7 @@ inline wstring ConvertSC2TC( const wstring& sText )
 		oFile << sText;
 		oFile.close();
 
-		if (SystemCommand((boost::format(sOpenCC) % sFile1.c_str() % sFile2.c_str()).str()))
+		if (SystemCommand((boost::wformat(sOpenCC) % sFile1 % sFile2).str()))
 		{
 			wifstream iFile(sFile2);
 			if (iFile.is_open())
@@ -133,31 +133,31 @@ inline wstring ConvertSC2TC( const wstring& sText )
 	return sResult;
 }
 
-inline void ExternCommand( const string& sFile )
+inline void ExternCommand( const wstring& sFile )
 {
-	static string	sOpenCC		= "Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zht.ini";
-	static string	sCalibre	= "Binary\\Calibre2\\ebook-convert.exe \"%1%\" \"%2%\"";
+	static wstring	sOpenCC		= L"Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zht.ini";
+	static wstring	sCalibre	= L"Binary\\Calibre2\\ebook-convert.exe \"%1%\" \"%2%\"";
 
-	string sTmpFile1 = GetTmpFileName();
-	string sTmpFile2 = sTmpFile1 + ".tmp2";
-	sTmpFile1 += ".tmp1";
+	wstring sTmpFile1 = GetTmpFileName();
+	wstring sTmpFile2 = sTmpFile1 + L".html";
+	sTmpFile1 += L".mobi";
 
 	// rename original file first
 	FS::rename( sFile, sTmpFile1 );
 
 	// execut OpenCC command
-	if (SystemCommand((boost::format(sOpenCC) % sTmpFile1 % sTmpFile2).str()))
+	if (SystemCommand((boost::wformat(sOpenCC) % sTmpFile1 % sTmpFile2).str()))
 	{
 		BOOST_LOG_TRIVIAL(trace) << "OpenCC convert done";
 
-		// rename and remove file
-		FS::rename(sTmpFile2, sFile);
+		// remove temp file
 		FS::remove(sTmpFile1);
 
 		// convert to mobi
-		cout << (boost::format(sCalibre) % sFile % FS::path(sFile).replace_extension("mobi").string()).str() << endl;
-		if (SystemCommand((boost::format(sCalibre) % sFile % FS::path(sFile).replace_extension("mobi").string()).str()))
+		if (SystemCommand((boost::wformat(sCalibre) % sTmpFile2 % sTmpFile1).str()))
 		{
+			FS::rename(sTmpFile2, sFile );
+			FS::rename(sTmpFile1, FS::path(sFile).replace_extension("mobi") );
 			BOOST_LOG_TRIVIAL(trace) << "Calibre convert done";
 		}
 		else
@@ -466,8 +466,8 @@ int main(int argc, char* argv[])
 							oFile << "</BODY></HTML>\n";
 							oFile.close();
 
-							BOOST_LOG_TRIVIAL(trace) << "  Convert from SC to TC";
-							ExternCommand(fnBook.string());
+							BOOST_LOG_TRIVIAL(trace) << "  Start Convert";
+							ExternCommand(fnBook.wstring());
 							BOOST_LOG_TRIVIAL(trace) << "  Book output finished";
 						}
 						else
@@ -485,7 +485,7 @@ int main(int argc, char* argv[])
 	}
 	catch (exception e)
 	{
-		cerr << e.what() << endl;
+		BOOST_LOG_TRIVIAL(fatal) << "Fatal error: " << e.what();
 	}
 	return 0;
 }
