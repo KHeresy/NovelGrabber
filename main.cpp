@@ -37,6 +37,10 @@ namespace FS = boost::filesystem;
 locale		g_locUTF8( locale(""), new codecvt_utf8<wchar_t>() );
 FS::path	g_sOutPath = FS::current_path();
 
+wstring	g_sOpenCC	= L"\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zht.ini";
+wstring	g_sCalibre	= L"\\Calibre2\\ebook-convert.exe \"%1%\" \"%2%\"";
+
+
 #pragma region wstring / string convetor
 inline string SConv(const wstring& wsStr)
 {
@@ -98,8 +102,6 @@ inline bool SystemCommand( const wstring& rCmd )
 
 inline wstring ConvertSC2TC( const wstring& sText )
 {
-	static wstring	sOpenCC	= L"Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zht.ini";
-
 	wstring sFile1 = GetTmpFileName();
 	wstring sFile2 = sFile1 + L".tmp2";
 	sFile1 += L".tmp1";
@@ -112,7 +114,7 @@ inline wstring ConvertSC2TC( const wstring& sText )
 		oFile << sText;
 		oFile.close();
 
-		if (SystemCommand((boost::wformat(sOpenCC) % sFile1 % sFile2).str()))
+		if (SystemCommand((boost::wformat(g_sOpenCC) % sFile1 % sFile2).str()))
 		{
 			wifstream iFile(sFile2);
 			if (iFile.is_open())
@@ -133,11 +135,9 @@ inline wstring ConvertSC2TC( const wstring& sText )
 	return sResult;
 }
 
-inline void ExternCommand( const wstring& sFile )
+inline void PostProcess( FS::path sFile)
 {
-	static wstring	sOpenCC		= L"Binary\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zht.ini";
-	static wstring	sCalibre	= L"Binary\\Calibre2\\ebook-convert.exe \"%1%\" \"%2%\"";
-
+	// name temp file
 	wstring sTmpFile1 = GetTmpFileName();
 	wstring sTmpFile2 = sTmpFile1 + L".html";
 	sTmpFile1 += L".mobi";
@@ -146,7 +146,7 @@ inline void ExternCommand( const wstring& sFile )
 	FS::rename( sFile, sTmpFile1 );
 
 	// execut OpenCC command
-	if (SystemCommand((boost::wformat(sOpenCC) % sTmpFile1 % sTmpFile2).str()))
+	if (SystemCommand((boost::wformat(g_sOpenCC) % sTmpFile1 % sTmpFile2).str()))
 	{
 		BOOST_LOG_TRIVIAL(trace) << "OpenCC convert done";
 
@@ -154,10 +154,10 @@ inline void ExternCommand( const wstring& sFile )
 		FS::remove(sTmpFile1);
 
 		// convert to mobi
-		if (SystemCommand((boost::wformat(sCalibre) % sTmpFile2 % sTmpFile1).str()))
+		if (SystemCommand((boost::wformat(g_sCalibre) % sTmpFile2 % sTmpFile1).str()))
 		{
 			FS::rename(sTmpFile2, sFile );
-			FS::rename(sTmpFile1, FS::path(sFile).replace_extension("mobi") );
+			FS::rename(sTmpFile1, sFile.replace_extension("mobi") );
 			BOOST_LOG_TRIVIAL(trace) << "Calibre convert done";
 		}
 		else
@@ -187,6 +187,7 @@ int main(int argc, char* argv[])
 	string	sSearch;
 	string	sReplace;
 	string	sEncode;
+	FS::path	sExtBin = "Binary";
 	FS::path	sDir;
 	FS::path	sImage = "images";
 	FS::path	sLogFile;
@@ -267,6 +268,10 @@ int main(int argc, char* argv[])
 	#pragma endregion
 
 	#pragma region configuration by options
+	wstring sExtPath = ( FS::current_path() / sExtBin ).wstring();
+	g_sOpenCC = sExtPath + g_sOpenCC;
+	g_sCalibre = sExtPath + g_sCalibre;
+
 	function<wstring(wstring)> funcNameRefine = [](wstring s){ return VertifyFilename(s); };
 	if (sSearch != "")
 	{
@@ -322,8 +327,9 @@ int main(int argc, char* argv[])
 					FS::create_directories(g_sOutPath / sImage);
 				BOOST_LOG_TRIVIAL(trace) << "Output to " << g_sOutPath;
 
-				// write test
+				// write
 				int idxBook = 0;
+				FS::current_path(g_sOutPath);
 				for (BookIndex& rBook : vBooks.second)
 				{
 					wstring sBookName = ConvertSC2TC(rBook.m_sTitle + L".html");
@@ -331,7 +337,7 @@ int main(int argc, char* argv[])
 
 					sBookName = funcNameRefine(sBookName);
 
-					auto fnBook = g_sOutPath;
+					FS::path fnBook;
 					if (bFileIndex)
 					{
 						++idxBook;
@@ -433,16 +439,15 @@ int main(int argc, char* argv[])
 												{
 													BOOST_LOG_TRIVIAL(info) <<  "        " << *sFile;
 													FS::path sImagePath = sImage / *sFile;
-													FS::path sFileName = g_sOutPath / sImagePath;
 
-													if (bOverWrite || !FS::exists(sFileName))
+													if (bOverWrite || !FS::exists(sImagePath))
 													{
 														int iTime = 0;
 														bool bOK = false;
 														while (++iTime < iRetryTimes)
 														{
 															BOOST_LOG_TRIVIAL(trace) << ".";
-															bOK = mClient.GetBinaryFile(sLink, sFileName.wstring());
+															bOK = mClient.GetBinaryFile(sLink, sImagePath.wstring());
 															if (bOK)
 																break;
 														}
@@ -467,7 +472,7 @@ int main(int argc, char* argv[])
 							oFile.close();
 
 							BOOST_LOG_TRIVIAL(trace) << "  Start Convert";
-							ExternCommand(fnBook.wstring());
+							PostProcess(fnBook);
 							BOOST_LOG_TRIVIAL(trace) << "  Book output finished";
 						}
 						else
