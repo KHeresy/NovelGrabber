@@ -173,10 +173,13 @@ inline void PostProcess( FS::path sFile)
 
 int main(int argc, char* argv[])
 {
-	// Set locale for Chinese
+	#pragma region Set locale for Chinese
 	locale::global( g_locUTF8 );
 	cout.imbue( g_locUTF8 );
 	wcout.imbue( g_locUTF8 );
+	clog.imbue(g_locUTF8);
+	wclog.imbue(g_locUTF8);
+	#pragma endregion
 
 	#pragma region Variables
 	bool	bNoDLImage;
@@ -268,6 +271,7 @@ int main(int argc, char* argv[])
 	#pragma endregion
 
 	#pragma region configuration by options
+
 	wstring sExtPath = ( FS::current_path() / sExtBin ).wstring();
 	g_sOpenCC = sExtPath + g_sOpenCC;
 	g_sCalibre = sExtPath + g_sCalibre;
@@ -333,8 +337,6 @@ int main(int argc, char* argv[])
 				for (BookIndex& rBook : vBooks.second)
 				{
 					wstring sBookName = ConvertSC2TC(rBook.m_sTitle + L".html");
-					BOOST_LOG_TRIVIAL(trace) << " Start process book <" << sBookName << ">, with " << rBook.m_vChapter.size() << " chapters";
-
 					sBookName = funcNameRefine(sBookName);
 
 					FS::path fnBook;
@@ -347,6 +349,7 @@ int main(int argc, char* argv[])
 					{
 						fnBook /= sBookName;
 					}
+					BOOST_LOG_TRIVIAL(trace) << " Start process book <" << fnBook << ">, with " << rBook.m_vChapter.size() << " chapters";
 
 					// if file existed
 					bool bToDownload = true;
@@ -412,7 +415,7 @@ int main(int argc, char* argv[])
 							for (auto& rLink : rBook.m_vChapter)
 							{
 								oFile << "<HR><A ID=\"CH" << ++idxChapter << "\" /><H4>" << rLink.first << "</H4>\n";
-								wcout << "  > " << rLink.second << endl;
+								BOOST_LOG_TRIVIAL(trace) << "  > " << rLink.second;
 
 								int iBTime = 0;
 								boost::optional<wstring> sHTML;
