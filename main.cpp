@@ -153,6 +153,9 @@ inline void PostProcess( FS::path sFile)
 		// remove temp file
 		FS::remove(sTmpFile1);
 
+		// get current codepage
+		auto cp = GetConsoleOutputCP();
+
 		// convert to mobi
 		if (SystemCommand((boost::wformat(g_sCalibre) % sTmpFile2 % sTmpFile1).str()))
 		{
@@ -164,6 +167,9 @@ inline void PostProcess( FS::path sFile)
 		{
 			BOOST_LOG_TRIVIAL(error) << "Calibre convert error!";
 		}
+
+		// restore codepage
+		SetConsoleOutputCP( cp );
 	}
 	else
 	{
@@ -210,7 +216,6 @@ int main(int argc, char* argv[])
 			( "log",			BPO::value(&sLogFile)->value_name("log_file"),						"Log")
 			( "search",			BPO::value(&sSearch)->value_name("string")->default_value(""),		"Search text in book name, use with --replace")
 			( "replace",		BPO::value(&sReplace)->value_name("string")->default_value(""),		"Replace search trem with, use with --search")
-			( "encode",			BPO::value(&sEncode)->value_name("encode")->default_value("BIG5"),	"Encode of input argument, used for search/replace")
 			( "file_index",		BPO::bool_switch(&bFileIndex)->default_value(false),				"Add file index at the begin of file name")
 			( "no_dl_image",	BPO::bool_switch(&bNoDLImage)->default_value(false),				"Not download image" )
 			( "no_overwrite",	BPO::bool_switch(&bOverWrite)->default_value(false),				"Overwrite existed files" );
@@ -271,7 +276,6 @@ int main(int argc, char* argv[])
 	#pragma endregion
 
 	#pragma region configuration by options
-
 	wstring sExtPath = ( FS::current_path() / sExtBin ).wstring();
 	g_sOpenCC = sExtPath + g_sOpenCC;
 	g_sCalibre = sExtPath + g_sCalibre;
@@ -279,7 +283,8 @@ int main(int argc, char* argv[])
 	function<wstring(wstring)> funcNameRefine = [](wstring s){ return VertifyFilename(s); };
 	if (sSearch != "")
 	{
-		funcNameRefine = [&sSearch,&sReplace,&sEncode](wstring s){
+		string sEncode = "BIG5";
+		funcNameRefine = [&sSearch, &sReplace, &sEncode](wstring s){
 			wstring ss = VertifyFilename(s);
 			boost::replace_all(ss, boost::locale::conv::to_utf<wchar_t>(sSearch, sEncode), boost::locale::conv::to_utf<wchar_t>(sReplace, sEncode));
 			return ss;
