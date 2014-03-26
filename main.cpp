@@ -195,7 +195,7 @@ int main(int argc, char* argv[])
 	string	sURL;
 	string	sSearch;
 	string	sReplace;
-	string	sEncode;
+	string	sEncode = "BIG5";
 	FS::path	sExtBin = "Binary";
 	FS::path	sDir;
 	FS::path	sImage = "images";
@@ -283,7 +283,6 @@ int main(int argc, char* argv[])
 	function<wstring(wstring)> funcNameRefine = [](wstring s){ return VertifyFilename(s); };
 	if (sSearch != "")
 	{
-		string sEncode = "BIG5";
 		funcNameRefine = [&sSearch, &sReplace, &sEncode](wstring s){
 			wstring ss = VertifyFilename(s);
 			boost::replace_all(ss, boost::locale::conv::to_utf<wchar_t>(sSearch, sEncode), boost::locale::conv::to_utf<wchar_t>(sReplace, sEncode));
