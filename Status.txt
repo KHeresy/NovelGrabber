@@ -4,6 +4,10 @@
 
 2. image may need to resize
 
-3. Error log
+3. Should modify Book title, not filename
 
-4. OpenCC may effect following input? (replace not work)
+4. digitals of index
+
+5. access time
+
+6. log level
