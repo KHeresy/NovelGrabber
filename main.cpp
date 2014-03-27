@@ -192,6 +192,7 @@ int main(int argc, char* argv[])
 	bool	bOverWrite;
 	bool	bFileIndex;
 	int		iRetryTimes;
+	int		iIndexDigitals;
 	string	sURL;
 	string	sSearch;
 	string	sReplace;
@@ -217,6 +218,7 @@ int main(int argc, char* argv[])
 			( "search",			BPO::value(&sSearch)->value_name("string")->default_value(""),		"Search text in book name, use with --replace")
 			( "replace",		BPO::value(&sReplace)->value_name("string")->default_value(""),		"Replace search trem with, use with --search")
 			( "file_index",		BPO::bool_switch(&bFileIndex)->default_value(false),				"Add file index at the begin of file name")
+			( "index_num",		BPO::value(&iIndexDigitals)->value_name("num")->default_value(2),	"Digitals of index (--file_index)")
 			( "no_dl_image",	BPO::bool_switch(&bNoDLImage)->default_value(false),				"Not download image" )
 			( "no_overwrite",	BPO::bool_switch(&bOverWrite)->default_value(false),				"Overwrite existed files" );
 
@@ -347,7 +349,8 @@ int main(int argc, char* argv[])
 					if (bFileIndex)
 					{
 						++idxBook;
-						fnBook /= (boost::lexical_cast<wstring>(idxBook)+L"_" + sBookName);
+						wstring wFmt = L"%0" + boost::lexical_cast<wstring>(iIndexDigitals) + L"d_%s";
+						fnBook /= (boost::wformat(wFmt) % idxBook % sBookName).str();
 					}
 					else
 					{
