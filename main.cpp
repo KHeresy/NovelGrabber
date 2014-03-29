@@ -28,6 +28,8 @@
 #include "HttpClient.h"
 #include "wenku8.cn.h"
 
+// opencc
+#include <opencc.h>
 #pragma endregion
 
 using namespace std;
@@ -100,41 +102,6 @@ inline bool SystemCommand( const wstring& rCmd )
 	return true;
 }
 
-inline wstring ConvertSC2TC( const wstring& sText )
-{
-	wstring sFile1 = GetTmpFileName();
-	wstring sFile2 = sFile1 + L".tmp2";
-	sFile1 += L".tmp1";
-	wstring sResult;
-
-	wofstream oFile( sFile1 );
-	if( oFile.is_open() )
-	{
-		oFile.imbue( g_locUTF8 );
-		oFile << sText;
-		oFile.close();
-
-		if (SystemCommand((boost::wformat(g_sOpenCC) % sFile1 % sFile2).str()))
-		{
-			wifstream iFile(sFile2);
-			if (iFile.is_open())
-			{
-				iFile.imbue(g_locUTF8);
-				getline(iFile, sResult);
-				iFile.close();
-			}
-
-			FS::remove(sFile1);
-			FS::remove(sFile2);
-		}
-		else
-		{
-			BOOST_LOG_TRIVIAL(error) << "OpenCC Convert error! " << sText;
-		}
-	}
-	return sResult;
-}
-
 inline void PostProcess( FS::path sFile)
 {
 	// name temp file
@@ -179,6 +146,8 @@ inline void PostProcess( FS::path sFile)
 
 int main(int argc, char* argv[])
 {
+	Opencc::SimpleConverter mOpenCC("s2t.json");
+
 	#pragma region Set locale for Chinese
 	locale::global( g_locUTF8 );
 	cout.imbue( g_locUTF8 );
@@ -325,7 +294,7 @@ int main(int argc, char* argv[])
 					BOOST_LOG_TRIVIAL(error) << "Can't find book information";
 					return -1;
 				}
-				wstring sBN = ConvertSC2TC(vBooks.first);
+				wstring sBN = SConv(mOpenCC.Convert(SConv(vBooks.first)));
 				BOOST_LOG_TRIVIAL(trace) << L"Strat to download novel: " << sBN;
 				BOOST_LOG_TRIVIAL(info) << " >Found " << vBooks.second.size() << " books";
 
@@ -342,7 +311,7 @@ int main(int argc, char* argv[])
 				FS::current_path(g_sOutPath);
 				for (BookIndex& rBook : vBooks.second)
 				{
-					wstring sBookName = ConvertSC2TC(rBook.m_sTitle + L".html");
+					wstring sBookName = SConv(mOpenCC.Convert(SConv(rBook.m_sTitle))) + L".html";
 					sBookName = funcNameRefine(sBookName);
 
 					FS::path fnBook;
