@@ -38,8 +38,8 @@ namespace FS = boost::filesystem;
 // global object
 locale		g_locUTF8( locale(""), new codecvt_utf8<wchar_t>() );
 FS::path	g_sOutPath = FS::current_path();
+Opencc::SimpleConverter*	g_pOpenCC = nullptr;
 
-wstring	g_sOpenCC	= L"\\opencc\\opencc.exe -i \"%1%\" -o \"%2%\" -c zhs2zht.ini";
 wstring	g_sCalibre	= L"\\Calibre2\\ebook-convert.exe \"%1%\" \"%2%\"";
 
 
@@ -110,44 +110,42 @@ inline void PostProcess( FS::path sFile)
 	sTmpFile1 += L".mobi";
 
 	// rename original file first
-	FS::rename( sFile, sTmpFile1 );
+	FS::rename( sFile, sTmpFile2 );
 
-	// execut OpenCC command
-	if (SystemCommand((boost::wformat(g_sOpenCC) % sTmpFile1 % sTmpFile2).str()))
+	// get current codepage
+	auto cp = GetConsoleOutputCP();
+
+	// convert to mobi
+	if (SystemCommand((boost::wformat(g_sCalibre) % sTmpFile2 % sTmpFile1).str()))
 	{
-		BOOST_LOG_TRIVIAL(trace) << "OpenCC convert done";
-
-		// remove temp file
-		FS::remove(sTmpFile1);
-
-		// get current codepage
-		auto cp = GetConsoleOutputCP();
-
-		// convert to mobi
-		if (SystemCommand((boost::wformat(g_sCalibre) % sTmpFile2 % sTmpFile1).str()))
-		{
-			FS::rename(sTmpFile2, sFile );
-			FS::rename(sTmpFile1, sFile.replace_extension("mobi") );
-			BOOST_LOG_TRIVIAL(trace) << "Calibre convert done";
-		}
-		else
-		{
-			BOOST_LOG_TRIVIAL(error) << "Calibre convert error!";
-		}
-
-		// restore codepage
-		SetConsoleOutputCP( cp );
+		FS::rename(sTmpFile2, sFile);
+		FS::rename(sTmpFile1, sFile.replace_extension("mobi"));
+		BOOST_LOG_TRIVIAL(trace) << "Calibre convert done";
 	}
 	else
 	{
-		BOOST_LOG_TRIVIAL(error) << "OpenCC Convert error!";
+		BOOST_LOG_TRIVIAL(error) << "Calibre convert error!";
 	}
+
+	// restore codepage
+	SetConsoleOutputCP(cp);
+}
+
+inline wstring ConvertS2T(const wstring& rInput )
+{
+	try
+	{
+		return SConv(g_pOpenCC->Convert(SConv(rInput)));
+	}
+	catch(exception e)
+	{
+		BOOST_LOG_TRIVIAL(error) << "OpenCC Convert error. " << e.what();
+	}
+	return L"";
 }
 
 int main(int argc, char* argv[])
 {
-	Opencc::SimpleConverter mOpenCC("s2t.json");
-
 	#pragma region Set locale for Chinese
 	locale::global( g_locUTF8 );
 	cout.imbue( g_locUTF8 );
@@ -247,10 +245,22 @@ int main(int argc, char* argv[])
 	#pragma endregion
 
 	#pragma region configuration by options
+	// initial OpenCC
+	try
+	{
+		g_pOpenCC = new Opencc::SimpleConverter("s2t.json");
+	}
+	catch (exception e)
+	{
+		BOOST_LOG_TRIVIAL(error) << "OpenCC Initialize error. " << e.what();
+		return -1;
+	}
+
+	// external command refine
 	wstring sExtPath = ( FS::current_path() / sExtBin ).wstring();
-	g_sOpenCC = sExtPath + g_sOpenCC;
 	g_sCalibre = sExtPath + g_sCalibre;
 
+	// filename refine
 	function<wstring(wstring)> funcNameRefine = [](wstring s){ return VertifyFilename(s); };
 	if (sSearch != "")
 	{
@@ -294,7 +304,7 @@ int main(int argc, char* argv[])
 					BOOST_LOG_TRIVIAL(error) << "Can't find book information";
 					return -1;
 				}
-				wstring sBN = SConv(mOpenCC.Convert(SConv(vBooks.first)));
+				wstring sBN = ConvertS2T(vBooks.first);
 				BOOST_LOG_TRIVIAL(trace) << L"Strat to download novel: " << sBN;
 				BOOST_LOG_TRIVIAL(info) << " >Found " << vBooks.second.size() << " books";
 
@@ -311,7 +321,7 @@ int main(int argc, char* argv[])
 				FS::current_path(g_sOutPath);
 				for (BookIndex& rBook : vBooks.second)
 				{
-					wstring sBookName = SConv(mOpenCC.Convert(SConv(rBook.m_sTitle))) + L".html";
+					wstring sBookName = ConvertS2T(rBook.m_sTitle) + L".html";
 					sBookName = funcNameRefine(sBookName);
 
 					FS::path fnBook;
@@ -369,28 +379,37 @@ int main(int argc, char* argv[])
 						oFile.imbue(g_locUTF8);
 						if (oFile.is_open())
 						{
+							wstring	sTitle = ConvertS2T(rBook.m_sTitle ),
+									sAuthor = ConvertS2T(rBook.m_sAuthor );
+
+							#pragma region HTML Header
 							oFile << "<HTML>\n";
 							oFile << "<HEAD>\n<META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n";
-							oFile << "<TITLE>" << rBook.m_sTitle << "</TITLE>\n";
-							oFile << "<META name=\"Author\" content=\"" << rBook.m_sAuthor << "\">\n</HEAD>\n";
-							oFile << "<BODY>\n";
-							oFile << "<H3 ALIGN=\"CENTER\">" << rBook.m_sTitle << "</H3>\n";
-							oFile << "<H4 ALIGN=\"CENTER\">" << rBook.m_sAuthor << "</H4>\n";
+							oFile << "<TITLE>" << sTitle << "</TITLE>\n";
+							oFile << "<META name=\"Author\" content=\"" << sAuthor << "\">\n</HEAD>\n";
+							#pragma endregion
 
-							// index
+							#pragma region begining
+							oFile << "<BODY>\n";
+							oFile << "<H3 ALIGN=\"CENTER\">" << sTitle << "</H3>\n";
+							oFile << "<H4 ALIGN=\"CENTER\">" << sAuthor << "</H4>\n";
+							#pragma endregion
+
+							#pragma region index
 							oFile << "<A ID=\"INDEX\" /><HR>\n<NAV>\n";
 							size_t idxChapter = 0;
 							for (auto& rLink : rBook.m_vChapter)
 							{
-								oFile << "<p><a href=\"#CH" << ++idxChapter << "\">" << rLink.first << "</a><!-- " << rLink.second << " --></p>\n";
+								oFile << "<p><a href=\"#CH" << ++idxChapter << "\">" << ConvertS2T( rLink.first ) << "</a><!-- " << rLink.second << " --></p>\n";
 							}
 							oFile << "</NAV>\n";
+							#pragma endregion
 
-							// content
+							#pragma region content
 							idxChapter = 0;
 							for (auto& rLink : rBook.m_vChapter)
 							{
-								oFile << "<HR><A ID=\"CH" << ++idxChapter << "\" /><H4>" << rLink.first << "</H4>\n";
+								oFile << "<HR><A ID=\"CH" << ++idxChapter << "\" /><H4>" << ConvertS2T( rLink.first ) << "</H4>\n";
 								BOOST_LOG_TRIVIAL(trace) << "  > " << rLink.second;
 
 								int iBTime = 0;
@@ -441,13 +460,18 @@ int main(int argc, char* argv[])
 													uShift += sImagePath.wstring().size() - rImg.second.size();
 												}
 											}
-											cout << endl;
 										}
 									}
-									oFile << mSite.GetChapterContent(*sHTML);
+									oFile << ConvertS2T( mSite.GetChapterContent(*sHTML) );
+								}
+								else
+								{
+									BOOST_LOG_TRIVIAL(error) << "Can't read the page:" << rLink.second;
 								}
 							}
 							oFile << "</BODY></HTML>\n";
+							#pragma endregion
+
 							oFile.close();
 
 							BOOST_LOG_TRIVIAL(trace) << "  Start Convert";
