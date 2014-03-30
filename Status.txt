@@ -6,8 +6,6 @@
 
 3. Should modify Book title, not filename
 
-4. OpenCC config file
-
 5. access time
 
 6. log level
