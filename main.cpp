@@ -405,7 +405,8 @@ int main(int argc, char* argv[])
 							size_t idxChapter = 0;
 							for (auto& rLink : rBook.m_vChapter)
 							{
-								oFile << "<p><a href=\"#CH" << ++idxChapter << "\">" << ConvertS2T( rLink.first ) << "</a><!-- " << rLink.second << " --></p>\n";
+								rLink.first = ConvertS2T(rLink.first);
+								oFile << "<p><a href=\"#CH" << ++idxChapter << "\">" << rLink.first << "</a><!-- " << rLink.second << " --></p>\n";
 							}
 							oFile << "</NAV>\n";
 							#pragma endregion
@@ -414,7 +415,7 @@ int main(int argc, char* argv[])
 							idxChapter = 0;
 							for (auto& rLink : rBook.m_vChapter)
 							{
-								oFile << "<HR><A ID=\"CH" << ++idxChapter << "\" /><H4>" << ConvertS2T( rLink.first ) << "</H4>\n";
+								oFile << "<HR><A ID=\"CH" << ++idxChapter << "\" /><H4>" << rLink.first << "</H4>\n";
 								BOOST_LOG_TRIVIAL(trace) << "  > " << rLink.second;
 
 								int iBTime = 0;
@@ -478,7 +479,6 @@ int main(int argc, char* argv[])
 							#pragma endregion
 
 							oFile.close();
-
 							BOOST_LOG_TRIVIAL(trace) << "  Start Convert";
 							PostProcess(fnBook);
 							BOOST_LOG_TRIVIAL(trace) << "  Book output finished";
