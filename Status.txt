@@ -6,8 +6,6 @@
 
 3. Should modify Book title, not filename
 
-5. access time
-
 6. log level
 
 7. use stl filesystem (no temp file name generator)

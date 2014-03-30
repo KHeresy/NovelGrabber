@@ -155,6 +155,7 @@ int main(int argc, char* argv[])
 	#pragma endregion
 
 	#pragma region Variables
+	// control by program options
 	bool	bNoDLImage;
 	bool	bOverWrite;
 	bool	bFileIndex;
@@ -163,12 +164,14 @@ int main(int argc, char* argv[])
 	string	sURL;
 	string	sSearch;
 	string	sReplace;
-	string	sEncode = "BIG5";
-	FS::path	sExtBin = "Binary";
 	FS::path	sDir;
-	FS::path	sImage = "images";
 	FS::path	sLogFile;
 	FS::path	sOpenCC_Conf;
+
+	// internal usage
+	string		sEncode = "BIG5";
+	FS::path	sExtBin = "Binary";
+	FS::path	sImage = "images";
 	#pragma endregion
 
 	#pragma region Program Options
@@ -189,7 +192,7 @@ int main(int argc, char* argv[])
 			( "file_index",		BPO::bool_switch(&bFileIndex)->default_value(false),							"Add file index at the begin of file name")
 			( "index_num",		BPO::value(&iIndexDigitals)->value_name("num")->default_value(2),				"Digitals of index (--file_index)")
 			( "no_dl_image",	BPO::bool_switch(&bNoDLImage)->default_value(false),							"Not download image" )
-			( "no_overwrite",	BPO::bool_switch(&bOverWrite)->default_value(false),							"Overwrite existed files" );
+			( "overwrite",		BPO::bool_switch(&bOverWrite)->default_value(false),							"Overwrite existed files" );
 
 		// prase
 		try
