@@ -21,8 +21,8 @@
 #include <boost/log/sinks/sync_frontend.hpp>
 #include <boost/log/sinks/text_ostream_backend.hpp>
 #include <boost/log/support/date_time.hpp>
-#include <boost/log/utility/empty_deleter.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/core/null_deleter.hpp>
 
 // application header
 #include "HttpClient.h"
@@ -225,7 +225,7 @@ int main(int argc, char* argv[])
 	#pragma region Log System
 	boost::shared_ptr< boost::log::core > core = boost::log::core::get();
 	boost::shared_ptr< boost::log::sinks::text_ostream_backend > backend(new boost::log::sinks::text_ostream_backend());
-	backend->add_stream(boost::shared_ptr< std::ostream >(&std::clog, boost::empty_deleter()));
+	backend->add_stream(boost::shared_ptr< std::ostream >(&std::clog, boost::null_deleter()));
 	backend->auto_flush(true);
 
 	if (!sLogFile.empty())
@@ -310,7 +310,7 @@ int main(int argc, char* argv[])
 					return -1;
 				}
 				wstring sBN = ConvertS2T(vBooks.first);
-				BOOST_LOG_TRIVIAL(trace) << L"Strat to download novel: " << sBN;
+				BOOST_LOG_TRIVIAL(trace) << "Strat to download novel: " << SConv( sBN );
 				BOOST_LOG_TRIVIAL(info) << " >Found " << vBooks.second.size() << " books";
 
 				// check directory
@@ -416,7 +416,7 @@ int main(int argc, char* argv[])
 							for (auto& rLink : rBook.m_vChapter)
 							{
 								oFile << "<HR><A ID=\"CH" << ++idxChapter << "\" /><H4>" << rLink.first << "</H4>\n";
-								BOOST_LOG_TRIVIAL(trace) << "  > " << rLink.second;
+								BOOST_LOG_TRIVIAL(trace) << "  > " << SConv( rLink.second );
 
 								int iBTime = 0;
 								boost::optional<wstring> sHTML;
@@ -472,7 +472,7 @@ int main(int argc, char* argv[])
 								}
 								else
 								{
-									BOOST_LOG_TRIVIAL(error) << "Can't read the page:" << rLink.second;
+									BOOST_LOG_TRIVIAL(error) << "Can't read the page:" << SConv( rLink.second );
 								}
 							}
 							oFile << "</BODY></HTML>\n";
