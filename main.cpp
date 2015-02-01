@@ -38,7 +38,7 @@ namespace FS = boost::filesystem;
 // global object
 locale		g_locUTF8( locale(""), new codecvt_utf8<wchar_t>() );
 FS::path	g_sOutPath = FS::current_path();
-Opencc::SimpleConverter*	g_pOpenCC = nullptr;
+opencc::SimpleConverter*	g_pOpenCC = nullptr;
 
 wstring	g_sCalibre	= L"\\Calibre2\\ebook-convert.exe \"%1%\" \"%2%\"";
 
@@ -253,7 +253,7 @@ int main(int argc, char* argv[])
 	// initial OpenCC
 	try
 	{
-		g_pOpenCC = new Opencc::SimpleConverter(sOpenCC_Conf.string());
+		g_pOpenCC = new opencc::SimpleConverter(sOpenCC_Conf.string());
 	}
 	catch (exception e)
 	{
@@ -446,9 +446,9 @@ int main(int argc, char* argv[])
 
 													if (bOverWrite || !FS::exists(sImagePath))
 													{
-														int iTime = 0;
+														int iTimes = 0;
 														bool bOK = false;
-														while (++iTime < iRetryTimes)
+														while (++iTimes < iRetryTimes)
 														{
 															BOOST_LOG_TRIVIAL(trace) << ".";
 															bOK = mClient.GetBinaryFile(sLink, sImagePath.wstring());
