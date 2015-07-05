@@ -294,7 +294,10 @@ int main(int argc, char* argv[])
 				{
 					rHtml = mClient.ReadHtml(mURL->first, mURL->second);
 					if (rHtml)
+					{
+						*rHtml = mSite.FilterHTML(*rHtml);
 						break;
+					}
 				}
 
 				if (!rHtml)
@@ -424,7 +427,10 @@ int main(int argc, char* argv[])
 								{
 									sHTML = mClient.ReadHtml(CheckLink(SConv(rLink.second), pathURL.string()));
 									if (sHTML)
+									{
+										*sHTML = mSite.FilterHTML(*sHTML);
 										break;
+									}
 								}
 								if (sHTML)
 								{
@@ -444,7 +450,17 @@ int main(int argc, char* argv[])
 													BOOST_LOG_TRIVIAL(info) <<  "        " << *sFile;
 													FS::path sImagePath = sImage / *sFile;
 
-													if (bOverWrite || !FS::exists(sImagePath))
+													bool bNeedDownload = true;
+													if (FS::exists(sImagePath))
+													{
+														if (!bOverWrite)
+														{
+															auto uSize = FS::file_size(sImagePath);
+															bNeedDownload = false;
+														}
+													}
+
+													if (bNeedDownload)
 													{
 														int iTimes = 0;
 														bool bOK = false;
@@ -462,6 +478,7 @@ int main(int argc, char* argv[])
 													}
 													else
 														BOOST_LOG_TRIVIAL(trace) << "SKIP";
+
 													sHTML->replace(uShift + rImg.first, rImg.second.size(), sImagePath.wstring());
 													uShift += sImagePath.wstring().size() - rImg.second.size();
 												}

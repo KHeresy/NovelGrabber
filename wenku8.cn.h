@@ -16,6 +16,8 @@ public:
 
 	bool CheckServer( const std::string& rServer );
 
+	std::wstring FilterHTML(const std::wstring& rHTML);
+
 	std::pair<std::wstring,std::vector<BookIndex>> AnalyzeIndexPage( std::wstring& rHtmlContent );
 
 	std::wstring GetChapterContent( const std::wstring& rHTML );
@@ -32,5 +34,6 @@ protected:
 	std::pair<std::wstring,std::wstring>	m_BookChapterTag;
 	std::pair<std::wstring,std::wstring>	m_ContentTag;
 	std::pair<std::wstring,std::wstring>	m_ImageTag;
+	std::vector<std::wstring>	m_vRemoveString;
 };
 
