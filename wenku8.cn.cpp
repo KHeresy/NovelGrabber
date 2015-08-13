@@ -19,7 +19,7 @@ Wenku8Cn::Wenku8Cn()
 	m_BookChapterTag	= make_pair( L"<td class=\"ccss\">",				L"</td>" );
 	m_ContentTag		= make_pair( L"<div id=\"content\">",				L"\n</div>" );
 	m_ImageTag			= make_pair( L"<img src=\"",						L"\" border=\"0\" class=\"imagecontent\">" );
-	m_vRemoveString.push_back( L"<img src=\"http://img.wenku8.cn/banner.jpg\" border=\"0\"/>");
+	m_vRemoveString.push_back( L"<img src=\"http://img.wenku8.com/banner.jpg\" border=\"0\"/>");
 }
 
 bool Wenku8Cn::CheckServer( const std::string& rServer )
