@@ -159,6 +159,7 @@ int main(int argc, char* argv[])
 	bool	bNoDLImage;
 	bool	bOverWrite;
 	bool	bFileIndex;
+	bool	bTFileNameTitle;
 	int		iRetryTimes;
 	int		iIndexDigitals;
 	string	sURL;
@@ -181,18 +182,19 @@ int main(int argc, char* argv[])
 		// define program options
 		BPO::options_description bpoOptions( "Command Line Options" );
 		bpoOptions.add_options()
-			( "help,H",			BPO::bool_switch()->notifier( [&bpoOptions]( bool bH ){ if( bH ){ cout << bpoOptions << endl; exit(0); } } ),	"Help message" )
-			( "url,U",			BPO::value(&sURL)->value_name("Web_Link"),										"The link of index page." )
-			( "output,O",		BPO::value(&sDir)->value_name("output_dir")->default_value("."),				"Directory to save output files" )
-			( "retry",			BPO::value(&iRetryTimes)->value_name("times")->default_value(100),				"HTTP retry times")
-			( "s2c_conf",		BPO::value(&sOpenCC_Conf)->value_name("conf_file")->default_value("s2t.json"),	"SC to TC convertor configuration file")
-			( "log",			BPO::value(&sLogFile)->value_name("log_file"),									"Log")
-			( "search",			BPO::value(&sSearch)->value_name("string")->default_value(""),					"Search text in book name, use with --replace")
-			( "replace",		BPO::value(&sReplace)->value_name("string")->default_value(""),					"Replace search trem with, use with --search")
-			( "file_index",		BPO::bool_switch(&bFileIndex)->default_value(false),							"Add file index at the begin of file name")
-			( "index_num",		BPO::value(&iIndexDigitals)->value_name("num")->default_value(2),				"Digitals of index (--file_index)")
-			( "no_dl_image",	BPO::bool_switch(&bNoDLImage)->default_value(false),							"Not download image" )
-			( "overwrite",		BPO::bool_switch(&bOverWrite)->default_value(false),							"Overwrite existed files" );
+			( "help,H",				BPO::bool_switch()->notifier( [&bpoOptions]( bool bH ){ if( bH ){ cout << bpoOptions << endl; exit(0); } } ),	"Help message" )
+			( "url,U",				BPO::value(&sURL)->value_name("Web_Link"),										"The link of index page." )
+			( "output,O",			BPO::value(&sDir)->value_name("output_dir")->default_value("."),				"Directory to save output files" )
+			( "retry",				BPO::value(&iRetryTimes)->value_name("times")->default_value(100),				"HTTP retry times")
+			( "s2c_conf",			BPO::value(&sOpenCC_Conf)->value_name("conf_file")->default_value("s2t.json"),	"SC to TC convertor configuration file")
+			( "log",				BPO::value(&sLogFile)->value_name("log_file"),									"Log")
+			( "search",				BPO::value(&sSearch)->value_name("string")->default_value(""),					"Search text in book name, use with --replace")
+			( "replace",			BPO::value(&sReplace)->value_name("string")->default_value(""),					"Replace search trem with, use with --search")
+			( "filename-as-title",	BPO::bool_switch(&bTFileNameTitle)->default_value(false),						"Use refined file-name as title in metadata")
+			( "file_index",			BPO::bool_switch(&bFileIndex)->default_value(false),							"Add file index at the begin of file name")
+			( "index_num",			BPO::value(&iIndexDigitals)->value_name("num")->default_value(2),				"Digitals of index (--file_index)")
+			( "no_dl_image",		BPO::bool_switch(&bNoDLImage)->default_value(false),							"Not download image" )
+			( "overwrite",			BPO::bool_switch(&bOverWrite)->default_value(false),							"Overwrite existed files" );
 
 		// prase
 		try
@@ -329,20 +331,16 @@ int main(int argc, char* argv[])
 				FS::current_path(g_sOutPath);
 				for (BookIndex& rBook : vBooks.second)
 				{
-					wstring sBookName = ConvertS2T(rBook.m_sTitle) + L".html";
+					wstring sBookName = ConvertS2T(rBook.m_sTitle);
 					sBookName = funcNameRefine(sBookName);
-
-					FS::path fnBook;
 					if (bFileIndex)
 					{
 						++idxBook;
 						wstring wFmt = L"%0" + boost::lexical_cast<wstring>(iIndexDigitals) + L"d_%s";
-						fnBook /= (boost::wformat(wFmt) % idxBook % sBookName).str();
+						sBookName = (boost::wformat(wFmt) % idxBook % sBookName).str();
 					}
-					else
-					{
-						fnBook /= sBookName;
-					}
+
+					FS::path fnBook = sBookName + L".html";
 					BOOST_LOG_TRIVIAL(trace) << " Start process book <" << fnBook << ">, with " << rBook.m_vChapter.size() << " chapters";
 
 					// if file existed
@@ -393,7 +391,10 @@ int main(int argc, char* argv[])
 							#pragma region HTML Header
 							oFile << "<HTML>\n";
 							oFile << "<HEAD>\n<META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n";
-							oFile << "<TITLE>" << sTitle << "</TITLE>\n";
+							if (bTFileNameTitle)
+								oFile << "<TITLE>" << sBookName << "</TITLE>\n";
+							else
+								oFile << "<TITLE>" << sTitle << "</TITLE>\n";
 							oFile << "<META name=\"Author\" content=\"" << sAuthor << "\">\n</HEAD>\n";
 							#pragma endregion
 
