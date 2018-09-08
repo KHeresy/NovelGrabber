@@ -183,18 +183,18 @@ int main(int argc, char* argv[])
 		BPO::options_description bpoOptions( "Command Line Options" );
 		bpoOptions.add_options()
 			( "help,H",				BPO::bool_switch()->notifier( [&bpoOptions]( bool bH ){ if( bH ){ cout << bpoOptions << endl; exit(0); } } ),	"Help message" )
-			( "url,U",				BPO::value(&sURL)->value_name("Web_Link"),										"The link of index page." )
-			( "output,O",			BPO::value(&sDir)->value_name("output_dir")->default_value("."),				"Directory to save output files" )
-			( "retry",				BPO::value(&iRetryTimes)->value_name("times")->default_value(100),				"HTTP retry times")
-			( "s2c_conf",			BPO::value(&sOpenCC_Conf)->value_name("conf_file")->default_value("s2t.json"),	"SC to TC convertor configuration file")
-			( "log",				BPO::value(&sLogFile)->value_name("log_file"),									"Log")
-			( "search",				BPO::value(&sSearch)->value_name("string")->default_value(""),					"Search text in book name, use with --replace")
-			( "replace",			BPO::value(&sReplace)->value_name("string")->default_value(""),					"Replace search trem with, use with --search")
-			( "filename-as-title",	BPO::bool_switch(&bTFileNameTitle)->default_value(false),						"Use refined file-name as title in metadata")
-			( "file_index",			BPO::bool_switch(&bFileIndex)->default_value(false),							"Add file index at the begin of file name")
-			( "index_num",			BPO::value(&iIndexDigitals)->value_name("num")->default_value(2),				"Digitals of index (--file_index)")
-			( "no_dl_image",		BPO::bool_switch(&bNoDLImage)->default_value(false),							"Not download image" )
-			( "overwrite",			BPO::bool_switch(&bOverWrite)->default_value(false),							"Overwrite existed files" );
+			( "url,U",				BPO::value(&sURL)->value_name("Web_Link"),											"The link of index page." )
+			( "output,O",			BPO::value(&sDir)->value_name("output_dir")->default_value("."),					"Directory to save output files" )
+			( "retry",				BPO::value(&iRetryTimes)->value_name("times")->default_value(100),					"HTTP retry times")
+			( "s2c_conf",			BPO::value(&sOpenCC_Conf)->value_name("conf_file")->default_value(".\\s2t.json"),	"SC to TC convertor configuration file")
+			( "log",				BPO::value(&sLogFile)->value_name("log_file"),										"Log")
+			( "search",				BPO::value(&sSearch)->value_name("string")->default_value(""),						"Search text in book name, use with --replace")
+			( "replace",			BPO::value(&sReplace)->value_name("string")->default_value(""),						"Replace search trem with, use with --search")
+			( "filename-as-title",	BPO::bool_switch(&bTFileNameTitle)->default_value(false),							"Use refined file-name as title in metadata")
+			( "file_index",			BPO::bool_switch(&bFileIndex)->default_value(false),								"Add file index at the begin of file name")
+			( "index_num",			BPO::value(&iIndexDigitals)->value_name("num")->default_value(2),					"Digitals of index (--file_index)")
+			( "no_dl_image",		BPO::bool_switch(&bNoDLImage)->default_value(false),								"Not download image" )
+			( "overwrite",			BPO::bool_switch(&bOverWrite)->default_value(false),								"Overwrite existed files" );
 
 		// prase
 		try

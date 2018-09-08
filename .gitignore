@@ -1,0 +1,11 @@
+.vs
+/x64
+
+*.suo
+*.sdf
+*.user
+*.bat
+
+/Package
+/Download
+/Binary/Calibre2
