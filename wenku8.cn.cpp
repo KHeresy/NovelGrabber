@@ -7,6 +7,7 @@
 #include <boost/locale.hpp>
 
 using namespace std;
+using namespace HttpClientLite;
 
 Wenku8Cn::Wenku8Cn()
 {

@@ -33,6 +33,7 @@
 #pragma endregion
 
 using namespace std;
+using namespace HttpClientLite;
 namespace FS = boost::filesystem;
 
 // global object
@@ -280,21 +281,21 @@ int main(int argc, char* argv[])
 	#pragma endregion
 
 	try{
-		HttpClient mClient;
+		Client mClient;
 		BOOST_LOG_TRIVIAL(info) << "Try to open: " << sURL;
-		auto mURL = HttpClient::ParseURL(sURL);
+		auto mURL = URL(sURL);
 		if (mURL)
 		{
 			Wenku8Cn mSite;
-			if (mSite.CheckServer(mURL->first))
+			if (mSite.CheckServer(mURL.m_sHost))
 			{
 				FS::path pathURL = FS::path(sURL).parent_path();
 
 				int iTime = 0;
-				boost::optional<wstring> rHtml;
+				std::optional<wstring> rHtml;
 				while (++iTime < iRetryTimes)
 				{
-					rHtml = mClient.ReadHtml(mURL->first, mURL->second);
+					rHtml = mClient.ReadHtml(mURL);
 					if (rHtml)
 					{
 						*rHtml = mSite.FilterHTML(*rHtml);
@@ -423,7 +424,7 @@ int main(int argc, char* argv[])
 								BOOST_LOG_TRIVIAL(trace) << "  > " << SConv( rLink.second );
 
 								int iBTime = 0;
-								boost::optional<wstring> sHTML;
+								std::optional<wstring> sHTML;
 								while (++iBTime < iRetryTimes)
 								{
 									sHTML = mClient.ReadHtml(CheckLink(SConv(rLink.second), pathURL.string()));
@@ -444,12 +445,13 @@ int main(int argc, char* argv[])
 											size_t uShift = 0;
 											for (auto& rImg : vImg)
 											{
-												string sLink = CheckLink(SConv(rImg.second), pathURL.string());
-												auto sFile = HttpClient::GetFilename(sLink);
-												if (sFile)
+												URL sLink = URL( CheckLink(SConv(rImg.second), pathURL.string()) );
+												if (sLink)
 												{
-													BOOST_LOG_TRIVIAL(info) <<  "        " << *sFile;
-													FS::path sImagePath = sImage / *sFile;
+													std::string sFile = sLink.getFilename();
+
+													BOOST_LOG_TRIVIAL(info) <<  "        " << sLink.m_sPath;
+													FS::path sImagePath = sImage / sFile;
 
 													bool bNeedDownload = true;
 													if (FS::exists(sImagePath))
@@ -475,7 +477,7 @@ int main(int argc, char* argv[])
 														if (bOK)
 															BOOST_LOG_TRIVIAL(trace) << "OK";
 														else
-															BOOST_LOG_TRIVIAL(error) << "Image <" << *sFile << "> download error.";
+															BOOST_LOG_TRIVIAL(error) << "Image <" << sFile << "> download error.";
 													}
 													else
 														BOOST_LOG_TRIVIAL(trace) << "SKIP";
