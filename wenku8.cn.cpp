@@ -11,7 +11,7 @@ using namespace HttpClientLite;
 
 Wenku8Cn::Wenku8Cn()
 {
-	m_SiteList = std::set<std::string>( { "www.wenku8.com" } );
+	m_SiteList = std::set<std::string>( { "www.wenku8.com", "www.wenku8.net" } );
 
 	m_wsAuthorPrefix	= boost::locale::conv::utf_to_utf<wchar_t>( "\xE4\xBD\x9C\xE8\x80\x85\xEF\xBC\x9A" );
 	m_TitleTag			= make_pair( L"<div id=\"title\">",					L"</div>" );
