@@ -1,0 +1,3 @@
+[submodule "HttpClientLite"]
+	path = HttpClientLite
+	url = https://github.com/KHeresy/HttpClientLite.git
