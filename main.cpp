@@ -195,7 +195,7 @@ int main(int argc, char* argv[])
 			( "file_index",			BPO::bool_switch(&bFileIndex)->default_value(false),								"Add file index at the begin of file name")
 			( "index_num",			BPO::value(&iIndexDigitals)->value_name("num")->default_value(2),					"Digitals of index (--file_index)")
 			( "no_dl_image",		BPO::bool_switch(&bNoDLImage)->default_value(false),								"Not download image" )
-			( "overwrite",			BPO::bool_switch(&bOverWrite)->default_value(false),								"Overwrite existed files" );
+			( "overwrite",			BPO::bool_switch(&bOverWrite)->default_value(false),								"Overwrite existed files");
 
 		// prase
 		try
@@ -346,7 +346,7 @@ int main(int argc, char* argv[])
 
 					// if file existed
 					bool bToDownload = true;
-					if (!bOverWrite && FS::exists(fnBook))
+					if (FS::exists(fnBook))
 					{
 						bToDownload = false;
 
@@ -376,6 +376,7 @@ int main(int argc, char* argv[])
 						if (iCounter != rBook.m_vChapter.size())
 						{
 							bToDownload = true;
+							FS::rename(fnBook, fnBook.wstring() + L".bak");
 							BOOST_LOG_TRIVIAL(info) << "  Chapter number is not equal, redownload. ( " << iCounter << " != " << rBook.m_vChapter.size() << " )";
 						}
 					}
