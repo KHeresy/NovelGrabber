@@ -381,7 +381,7 @@ int main(int argc, char* argv[])
 						}
 					}
 
-					if (bToDownload)
+					if (bToDownload || bOverWrite)
 					{
 						wofstream oFile(fnBook.wstring());
 						oFile.imbue(g_locUTF8);
@@ -407,21 +407,21 @@ int main(int argc, char* argv[])
 							#pragma endregion
 
 							#pragma region index
-							oFile << "<A ID=\"INDEX\" /><HR>\n<NAV>\n";
+							oFile << "<SECTION><A NAME=\"INDEX\" ></A><HR>\n<NAV>\n";
 							size_t idxChapter = 0;
 							for (auto& rLink : rBook.m_vChapter)
 							{
 								rLink.first = ConvertS2T(rLink.first);
 								oFile << "<p><a href=\"#CH" << ++idxChapter << "\">" << rLink.first << "</a><!-- " << rLink.second << " --></p>\n";
 							}
-							oFile << "</NAV>\n";
+							oFile << "</NAV></SECTION>\n";
 							#pragma endregion
 
 							#pragma region content
 							idxChapter = 0;
 							for (auto& rLink : rBook.m_vChapter)
 							{
-								oFile << "<HR><A ID=\"CH" << ++idxChapter << "\" /><H4>" << rLink.first << "</H4>\n";
+								oFile << "<HR><SECTION><A NAME=\"CH" << ++idxChapter << "\" ></A><H3 CLASS=\"chapter\">" << rLink.first << "</H3>\n";
 								BOOST_LOG_TRIVIAL(trace) << "  > " << SConv( rLink.second );
 
 								int iBTime = 0;
@@ -490,6 +490,7 @@ int main(int argc, char* argv[])
 										}
 									}
 									oFile << ConvertS2T( mSite.GetChapterContent(*sHTML) );
+									oFile << "</SECTION>\n";
 								}
 								else
 								{
