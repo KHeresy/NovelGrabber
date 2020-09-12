@@ -145,6 +145,22 @@ inline wstring ConvertS2T(const wstring& rInput )
 	return L"";
 }
 
+template<class FuncProcessFile>
+void scanDirectory(const FS::path& sPath, FuncProcessFile funcProcessor)
+{
+	for (const auto& itItem : FS::directory_iterator(sPath))
+	{
+		if (FS::is_directory(itItem))
+		{
+			scanDirectory(itItem, funcProcessor);
+		}
+		else if (FS::is_regular_file(itItem))
+		{
+			funcProcessor(itItem);
+		}
+	}
+}
+
 int main(int argc, char* argv[])
 {
 	#pragma region Set locale for Chinese
@@ -161,6 +177,7 @@ int main(int argc, char* argv[])
 	bool	bOverWrite;
 	bool	bFileIndex;
 	bool	bTFileNameTitle;
+	bool	bReProcessMode;
 	int		iRetryTimes;
 	int		iIndexDigitals;
 	string	sURL;
@@ -195,7 +212,8 @@ int main(int argc, char* argv[])
 			( "file_index",			BPO::bool_switch(&bFileIndex)->default_value(false),								"Add file index at the begin of file name")
 			( "index_num",			BPO::value(&iIndexDigitals)->value_name("num")->default_value(2),					"Digitals of index (--file_index)")
 			( "no_dl_image",		BPO::bool_switch(&bNoDLImage)->default_value(false),								"Not download image" )
-			( "overwrite",			BPO::bool_switch(&bOverWrite)->default_value(false),								"Overwrite existed files");
+			( "overwrite",			BPO::bool_switch(&bOverWrite)->default_value(false),								"Overwrite existed files")
+			("reprocess",			BPO::bool_switch(&bReProcessMode)->default_value(false),							"Reprocess existed HTML files");
 
 		// prase
 		try
@@ -279,6 +297,36 @@ int main(int argc, char* argv[])
 		};
 	}
 	#pragma endregion
+
+	if (bReProcessMode)
+	{
+		BOOST_LOG_TRIVIAL(info) << "Enter re-process mode: " << sDir << "\n";
+		scanDirectory(sDir, [](const FS::path& sPath) {
+			if (sPath.extension() == ".html")
+			{
+				BOOST_LOG_TRIVIAL(info) << sPath;
+				std::wifstream inputFile(sPath.string());
+				if (inputFile)
+				{
+					std::wstring sHTML((std::istreambuf_iterator<wchar_t>(inputFile)),std::istreambuf_iterator<wchar_t>());
+					inputFile.close();
+
+					boost::replace_all(sHTML, "<br />\r\n<br />\r\n", "<BR />\r\n");
+					boost::replace_all(sHTML, "&nbsp;&nbsp;&nbsp;&nbsp;", "&emsp;&emsp;");
+
+					std::wofstream outputFile(sPath.string());
+					outputFile << sHTML;
+					outputFile.close();
+
+					FS::current_path(sPath.parent_path());
+					PostProcess(sPath);
+
+					BOOST_LOG_TRIVIAL(info) << sPath;
+				}
+			}
+		});
+		return 0;
+	}
 
 	try{
 		Client mClient;

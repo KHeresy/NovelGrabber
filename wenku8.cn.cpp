@@ -124,7 +124,7 @@ wstring Wenku8Cn::GetChapterContent( const wstring& rHtml )
 	{
 		boost::algorithm::replace_all( pContent.second, "<ul ", "<!--" );
 		boost::algorithm::replace_all( pContent.second, "</ul>", " -->" );
-		boost::algorithm::replace_all( pContent.second, "<br />\r\n<br />\r\n", "<BR />\n");
+		boost::algorithm::replace_all( pContent.second, "<br />\r\n<br />\r\n", "<BR />\r\n");
 
 		return pContent.second;
 	}
