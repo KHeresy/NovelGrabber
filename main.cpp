@@ -43,7 +43,7 @@ opencc::SimpleConverter*	g_pOpenCC = nullptr;
 
 const wstring	g_sTargetFormat = L"epub";
 wstring	g_sCalibre	= L"\\Calibre2\\ebook-convert.exe \"%1%\" \"%2%\"";
-wstring	g_sKepubify = L"\\kepubify.exe \"%1%\" -o \"%2%\"";
+wstring	g_sKepubify = L"\\kepubify.exe \"%1%\"";
 
 #pragma region wstring / string convetor
 inline string SConv(const wstring& wsStr)
@@ -99,20 +99,23 @@ inline bool SystemCommand( const wstring& rCmd )
 	return true;
 }
 
-inline wstring GenCalibreCommand( const wstring& sInputFiile, const wstring& sOuputFiile)
+inline wstring GenCalibreCommand( const wstring& sInputFiile, const wstring& sOuputFiile, const wstring& sCover)
 {
 	wstring sCmd = (boost::wformat(g_sCalibre) % sInputFiile % sOuputFiile).str();
+	if (sCover != L"")
+		sCmd += (L" --cover " + sCover);
+
 	return sCmd;
 }
 
-inline void PostProcess(FS::path sFile)
+inline void PostProcess(FS::path sFile, wstring sCoverImg)
 {
 	// name temp file
 	wstring sSourceFile = sFile.wstring();
 	wstring sTmpString = FS::unique_path().wstring();
 	wstring sTmpHTML = sTmpString + L".html";
 	wstring sTmp1Target = sTmpString + L"." + g_sTargetFormat;
-	wstring sTmp2Target = sTmpString + L"-kepub." + g_sTargetFormat;
+	wstring sTmp2Target = sTmpString + L"_converted.kepub." + g_sTargetFormat;
 	wstring sTargetFile = sFile.replace_extension(g_sTargetFormat).wstring();
 
 	try {
@@ -122,12 +125,12 @@ inline void PostProcess(FS::path sFile)
 		auto cp = GetConsoleOutputCP();
 
 		// convert to e-book
-		if (SystemCommand(GenCalibreCommand(sTmpHTML, sTmp1Target)))
+		if (SystemCommand(GenCalibreCommand(sTmpHTML, sTmp1Target, sCoverImg)))
 		{
 			BOOST_LOG_TRIVIAL(trace) << "Calibre convert done";
 			FS::rename(sTmpHTML, sSourceFile);
 
-			if (SystemCommand((boost::wformat(g_sKepubify) % sTmp1Target % sTmp2Target).str()))
+			if (SystemCommand((boost::wformat(g_sKepubify) % sTmp1Target).str()))
 			{
 				FS::remove(sTmp1Target);
 				FS::rename(sTmp2Target, sTargetFile);
@@ -337,12 +340,17 @@ int main(int argc, char* argv[])
 					boost::replace_all(sHTML, "</A><H3", "<H3");
 					boost::replace_all(sHTML, "</H3>", "</H3></A>");
 
+					wstring sCover = L"";
+					auto pFirstImage = HTMLParser::FindContentBetweenTag(sHTML, { L"<img src=\"", L"\" "}, 0);
+					if (pFirstImage.first != std::wstring::npos)
+						sCover = pFirstImage.second;
+
 					std::wofstream outputFile(sPath.string());
 					outputFile << sHTML;
 					outputFile.close();
 
 					FS::current_path(sPath.parent_path());
-					PostProcess(sPath);
+					PostProcess(sPath, sCover);
 
 					BOOST_LOG_TRIVIAL(info) << sPath;
 				}
@@ -490,6 +498,7 @@ int main(int argc, char* argv[])
 
 							#pragma region content
 							idxChapter = 0;
+							wstring sCover = L"";
 							for (auto& rLink : rBook.m_vChapter)
 							{
 								oFile << "<HR><SECTION><A NAME=\"CH" << ++idxChapter << "\" ><H3 CLASS=\"chapter\">" << rLink.first << "</H3></A>\n";
@@ -556,6 +565,9 @@ int main(int argc, char* argv[])
 
 													sHTML->replace(uShift + rImg.first, rImg.second.size(), sImagePath.wstring());
 													uShift += sImagePath.wstring().size() - rImg.second.size();
+
+													if (sCover == L"")
+														sCover = sImagePath.wstring();
 												}
 											}
 										}
@@ -573,7 +585,7 @@ int main(int argc, char* argv[])
 
 							oFile.close();
 							BOOST_LOG_TRIVIAL(trace) << "  Start Convert";
-							PostProcess(fnBook);
+							PostProcess(fnBook, sCover);
 							BOOST_LOG_TRIVIAL(trace) << "  Book output finished";
 						}
 						else
