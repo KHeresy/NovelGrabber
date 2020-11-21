@@ -41,8 +41,9 @@ locale		g_locUTF8( locale(""), new codecvt_utf8<wchar_t>() );
 FS::path	g_sOutPath = FS::current_path();
 opencc::SimpleConverter*	g_pOpenCC = nullptr;
 
+const wstring	g_sTargetFormat = L"epub";
 wstring	g_sCalibre	= L"\\Calibre2\\ebook-convert.exe \"%1%\" \"%2%\"";
-
+wstring	g_sKepubify = L"\\kepubify.exe \"%1%\" -o \"%2%\"";
 
 #pragma region wstring / string convetor
 inline string SConv(const wstring& wsStr)
@@ -55,11 +56,6 @@ inline wstring SConv(const string& sStr)
 	return boost::locale::conv::utf_to_utf<wchar_t>(sStr);
 }
 #pragma endregion
-
-inline wstring GetTmpFileName()
-{
-	return FS::unique_path().wstring();
-}
 
 inline string CheckLink( const string& sUrl, const string& sPartent )
 {
@@ -103,33 +99,57 @@ inline bool SystemCommand( const wstring& rCmd )
 	return true;
 }
 
-inline void PostProcess( FS::path sFile)
+inline wstring GenCalibreCommand( const wstring& sInputFiile, const wstring& sOuputFiile)
+{
+	wstring sCmd = (boost::wformat(g_sCalibre) % sInputFiile % sOuputFiile).str();
+	return sCmd;
+}
+
+inline void PostProcess(FS::path sFile)
 {
 	// name temp file
-	wstring sTmpFile1 = GetTmpFileName();
-	wstring sTmpFile2 = sTmpFile1 + L".html";
-	sTmpFile1 += L".mobi";
+	wstring sSourceFile = sFile.wstring();
+	wstring sTmpString = FS::unique_path().wstring();
+	wstring sTmpHTML = sTmpString + L".html";
+	wstring sTmp1Target = sTmpString + L"." + g_sTargetFormat;
+	wstring sTmp2Target = sTmpString + L"-kepub." + g_sTargetFormat;
+	wstring sTargetFile = sFile.replace_extension(g_sTargetFormat).wstring();
 
-	// rename original file first
-	FS::rename( sFile, sTmpFile2 );
+	try {
+		FS::rename(sSourceFile, sTmpHTML);
 
-	// get current codepage
-	auto cp = GetConsoleOutputCP();
+		// get current codepage
+		auto cp = GetConsoleOutputCP();
 
-	// convert to mobi
-	if (SystemCommand((boost::wformat(g_sCalibre) % sTmpFile2 % sTmpFile1).str()))
-	{
-		FS::rename(sTmpFile2, sFile);
-		FS::rename(sTmpFile1, sFile.replace_extension("mobi"));
-		BOOST_LOG_TRIVIAL(trace) << "Calibre convert done";
+		// convert to e-book
+		if (SystemCommand(GenCalibreCommand(sTmpHTML, sTmp1Target)))
+		{
+			BOOST_LOG_TRIVIAL(trace) << "Calibre convert done";
+			FS::rename(sTmpHTML, sSourceFile);
+
+			if (SystemCommand((boost::wformat(g_sKepubify) % sTmp1Target % sTmp2Target).str()))
+			{
+				FS::remove(sTmp1Target);
+				FS::rename(sTmp2Target, sTargetFile);
+				BOOST_LOG_TRIVIAL(trace) << "Kepubify convert done";
+			}
+			else
+			{
+				BOOST_LOG_TRIVIAL(error) << "Kepubify convert error!";
+			}
+		}
+		else
+		{
+			BOOST_LOG_TRIVIAL(error) << "Calibre convert error!";
+		}
+
+		// restore codepage
+		SetConsoleOutputCP(cp);
 	}
-	else
+	catch (std::exception e)
 	{
-		BOOST_LOG_TRIVIAL(error) << "Calibre convert error!";
+		BOOST_LOG_TRIVIAL(error) << e.what();
 	}
-
-	// restore codepage
-	SetConsoleOutputCP(cp);
 }
 
 inline wstring ConvertS2T(const wstring& rInput )
@@ -213,7 +233,7 @@ int main(int argc, char* argv[])
 			( "index_num",			BPO::value(&iIndexDigitals)->value_name("num")->default_value(2),					"Digitals of index (--file_index)")
 			( "no_dl_image",		BPO::bool_switch(&bNoDLImage)->default_value(false),								"Not download image" )
 			( "overwrite",			BPO::bool_switch(&bOverWrite)->default_value(false),								"Overwrite existed files")
-			("reprocess",			BPO::bool_switch(&bReProcessMode)->default_value(false),							"Reprocess existed HTML files");
+			( "reprocess",			BPO::bool_switch(&bReProcessMode)->default_value(false),							"Reprocess existed HTML files");
 
 		// prase
 		try
@@ -285,6 +305,7 @@ int main(int argc, char* argv[])
 	// external command refine
 	wstring sExtPath = ( FS::current_path() / sExtBin ).wstring();
 	g_sCalibre = sExtPath + g_sCalibre;
+	g_sKepubify= sExtPath + g_sKepubify;
 
 	// filename refine
 	function<wstring(wstring)> funcNameRefine = [](wstring s){ return VertifyFilename(s); };
@@ -313,6 +334,8 @@ int main(int argc, char* argv[])
 
 					boost::replace_all(sHTML, "<br />\r\n<br />\r\n", "<BR />\r\n");
 					boost::replace_all(sHTML, "&nbsp;&nbsp;&nbsp;&nbsp;", "&emsp;&emsp;");
+					boost::replace_all(sHTML, "</A><H3", "<H3");
+					boost::replace_all(sHTML, "</H3>", "</H3></A>");
 
 					std::wofstream outputFile(sPath.string());
 					outputFile << sHTML;
@@ -462,14 +485,14 @@ int main(int argc, char* argv[])
 								rLink.first = ConvertS2T(rLink.first);
 								oFile << "<p><a href=\"#CH" << ++idxChapter << "\">" << rLink.first << "</a><!-- " << rLink.second << " --></p>\n";
 							}
-							oFile << "</NAV></SECTION>\n";
+							oFile << "</NAV>\n</SECTION>\n";
 							#pragma endregion
 
 							#pragma region content
 							idxChapter = 0;
 							for (auto& rLink : rBook.m_vChapter)
 							{
-								oFile << "<HR><SECTION><A NAME=\"CH" << ++idxChapter << "\" ></A><H3 CLASS=\"chapter\">" << rLink.first << "</H3>\n";
+								oFile << "<HR><SECTION><A NAME=\"CH" << ++idxChapter << "\" ><H3 CLASS=\"chapter\">" << rLink.first << "</H3></A>\n";
 								BOOST_LOG_TRIVIAL(trace) << "  > " << SConv( rLink.second );
 
 								int iBTime = 0;
