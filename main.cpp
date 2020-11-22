@@ -91,7 +91,7 @@ inline wstring VertifyFilename( const wstring& sFilename )
 
 inline bool SystemCommand( const wstring& rCmd )
 {
-	if (system(SConv(rCmd).c_str()))
+	if (_wsystem(rCmd.c_str()))
 	{
 		BOOST_LOG_TRIVIAL(error) << "System call failed: " << rCmd;
 		return false;
@@ -99,41 +99,41 @@ inline bool SystemCommand( const wstring& rCmd )
 	return true;
 }
 
-inline wstring GenCalibreCommand( const wstring& sInputFiile, const wstring& sOuputFiile, const wstring& sCover)
+inline wstring GenCalibreCommand( const wstring& sInputFiile, const wstring& sOuputFiile, const wstring& sCover, const wstring& wSeriesName)
 {
 	wstring sCmd = (boost::wformat(g_sCalibre) % sInputFiile % sOuputFiile).str();
 	if (sCover != L"")
-		sCmd += (L" --cover " + sCover);
+		sCmd += (L" --no-svg-cove --cover \"" + sCover + L"\"");
+	else
+		sCmd += L" --no-default-epub-cover";
+
+	if (wSeriesName != L"")
+		sCmd += L" --series \"" + wSeriesName + L"\"";
 
 	return sCmd;
 }
 
-inline void PostProcess(FS::path sFile, wstring sCoverImg)
+inline void PostProcess(FS::path sFile, wstring sCoverImg, const wstring& sBookName)
 {
 	// name temp file
 	wstring sSourceFile = sFile.wstring();
-	wstring sTmpString = FS::unique_path().wstring();
-	wstring sTmpHTML = sTmpString + L".html";
-	wstring sTmp1Target = sTmpString + L"." + g_sTargetFormat;
-	wstring sTmp2Target = sTmpString + L"_converted.kepub." + g_sTargetFormat;
 	wstring sTargetFile = sFile.replace_extension(g_sTargetFormat).wstring();
+	wstring sTmpTarget = (sFile.stem().wstring() + L"_converted.kepub." + g_sTargetFormat);
+	wstring sFinalTarget = (sFile.stem().wstring() + L".kepub." + g_sTargetFormat);
 
 	try {
-		FS::rename(sSourceFile, sTmpHTML);
-
 		// get current codepage
 		auto cp = GetConsoleOutputCP();
 
 		// convert to e-book
-		if (SystemCommand(GenCalibreCommand(sTmpHTML, sTmp1Target, sCoverImg)))
+		if (SystemCommand(GenCalibreCommand(sSourceFile, sTargetFile, (sFile.parent_path() / sCoverImg).wstring(), sBookName)))
 		{
 			BOOST_LOG_TRIVIAL(trace) << "Calibre convert done";
-			FS::rename(sTmpHTML, sSourceFile);
 
-			if (SystemCommand((boost::wformat(g_sKepubify) % sTmp1Target).str()))
+			if (SystemCommand((boost::wformat(g_sKepubify) % sTargetFile).str()))
 			{
-				FS::remove(sTmp1Target);
-				FS::rename(sTmp2Target, sTargetFile);
+				FS::remove(sTargetFile);
+				FS::rename(sTmpTarget, sFinalTarget);
 				BOOST_LOG_TRIVIAL(trace) << "Kepubify convert done";
 			}
 			else
@@ -350,7 +350,7 @@ int main(int argc, char* argv[])
 					outputFile.close();
 
 					FS::current_path(sPath.parent_path());
-					PostProcess(sPath, sCover);
+					PostProcess(sPath, sCover, sPath.parent_path().filename().wstring());
 
 					BOOST_LOG_TRIVIAL(info) << sPath;
 				}
@@ -585,7 +585,7 @@ int main(int argc, char* argv[])
 
 							oFile.close();
 							BOOST_LOG_TRIVIAL(trace) << "  Start Convert";
-							PostProcess(fnBook, sCover);
+							PostProcess(fnBook, sCover, sBN);
 							BOOST_LOG_TRIVIAL(trace) << "  Book output finished";
 						}
 						else
