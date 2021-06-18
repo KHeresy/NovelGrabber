@@ -63,7 +63,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\boost\stage\lib;.\opencc;..\openssl</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libcrypto.lib;libssl.lib;openccd.lib;</AdditionalDependencies>
+      <AdditionalDependencies>Advapi32.lib;user32.lib;libcrypto.lib;libssl.lib;openccd.lib;</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -85,7 +85,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>..\boost\stage\lib;.\opencc;..\openssl</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libcrypto.lib;libssl.lib;opencc.lib;</AdditionalDependencies>
+      <AdditionalDependencies>Advapi32.lib;user32.lib;libcrypto.lib;libssl.lib;opencc.lib;</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
