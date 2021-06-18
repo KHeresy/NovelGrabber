@@ -407,8 +407,17 @@ int main(int argc, char* argv[])
 				BOOST_LOG_TRIVIAL(trace) << "Output to " << g_sOutPath;
 
 				// write
-				int idxBook = 0;
 				FS::current_path(g_sOutPath);
+
+				// Output URL for reference
+				{
+					ofstream oFile("url.txt");
+					oFile << sURL;
+					oFile.close();
+				}
+
+				// Process book
+				int idxBook = 0;
 				for (BookIndex& rBook : vBooks.second)
 				{
 					wstring sBookName = ConvertS2T(rBook.m_sTitle);
