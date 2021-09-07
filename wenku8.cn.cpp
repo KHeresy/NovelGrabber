@@ -16,7 +16,7 @@ Wenku8Cn::Wenku8Cn()
 	m_wsAuthorPrefix	= boost::locale::conv::utf_to_utf<wchar_t>( "\xE4\xBD\x9C\xE8\x80\x85\xEF\xBC\x9A" );
 	m_TitleTag			= make_pair( L"<div id=\"title\">",					L"</div>" );
 	m_AuthorTag			= make_pair( L"<div id=\"info\">",					L"</div>" );
-	m_BookTitleTag		= make_pair( L"<td class=\"vcss\" colspan=\"4\">",	L"</td>" );
+	m_BookTitleTag		= make_pair( L"<td class=\"vcss\" colspan=\"4\"",	L"</td>" );
 	m_BookChapterTag	= make_pair( L"<td class=\"ccss\">",				L"</td>" );
 	m_ContentTag		= make_pair( L"<div id=\"content\">",				L"\n</div>" );
 	m_ImageTag			= make_pair( L"<img src=\"",						L"\" border=\"0\" class=\"imagecontent\">" );
@@ -63,7 +63,26 @@ std::pair<std::wstring,std::vector<BookIndex>> Wenku8Cn::AnalyzeIndexPage( std::
 	size_t uPos = 0;
 	while( true )
 	{
-		auto pBook = HTMLParser::FindContentBetweenTag( rHtmlContent, m_BookTitleTag, uPos );
+		//auto pBook = HTMLParser::FindContentBetweenTag(rHtmlContent, m_BookTitleTag, uPos);
+		// Hard code fix
+		std::pair<size_t, std::wstring> pBook{ std::string::npos, L""};
+		{
+			size_t uStart = rHtmlContent.find(m_BookTitleTag.first, uPos);
+			if (uStart != std::string::npos)
+			{
+				uStart = rHtmlContent.find(L">", uStart);
+				if (uStart != std::string::npos)
+				{
+					size_t uEnd = rHtmlContent.find(m_BookTitleTag.second, uStart);
+					if (uEnd != std::string::npos)
+					{
+						pBook.first = uStart + 1;
+						pBook.second = rHtmlContent.substr(uStart + 1, uEnd - uStart-1);
+					}
+				}
+			}
+		}
+
 		if( pBook.first != wstring::npos )
 		{
 			vBooks.push_back( pBook );
