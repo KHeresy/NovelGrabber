@@ -202,6 +202,7 @@ int main(int argc, char* argv[])
 	bool	bTFileNameTitle;
 	bool	bReProcessMode;
 	int		iRetryTimes;
+	int		iSleep;
 	int		iIndexDigitals;
 	string	sURL;
 	string	sSearch;
@@ -227,6 +228,7 @@ int main(int argc, char* argv[])
 			( "url,U",				BPO::value(&sURL)->value_name("Web_Link"),											"The link of index page." )
 			( "output,O",			BPO::value(&sDir)->value_name("output_dir")->default_value("."),					"Directory to save output files" )
 			( "retry",				BPO::value(&iRetryTimes)->value_name("times")->default_value(100),					"HTTP retry times")
+			( "wait",				BPO::value(&iSleep)->value_name("ms")->default_value(100),							"Sleep between http request")
 			( "s2c_conf",			BPO::value(&sOpenCC_Conf)->value_name("conf_file")->default_value(".\\s2t.json"),	"SC to TC convertor configuration file")
 			( "log",				BPO::value(&sLogFile)->value_name("log_file"),										"Log")
 			( "search",				BPO::value(&sSearch)->value_name("string")->default_value(""),						"Search text in book name, use with --replace")
@@ -359,7 +361,10 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	try{
+	try
+	{
+		auto duSleep = std::chrono::milliseconds(iSleep);
+
 		Client mClient;
 		BOOST_LOG_TRIVIAL(info) << "Try to open: " << sURL;
 		auto mURL = URL(sURL);
@@ -374,6 +379,7 @@ int main(int argc, char* argv[])
 				std::optional<wstring> rHtml;
 				while (++iTime < iRetryTimes)
 				{
+					std::this_thread::sleep_for(duSleep);
 					rHtml = mClient.ReadHtml(mURL);
 					if (rHtml)
 					{
@@ -517,6 +523,7 @@ int main(int argc, char* argv[])
 								std::optional<wstring> sHTML;
 								while (++iBTime < iRetryTimes)
 								{
+									std::this_thread::sleep_for(duSleep);
 									sHTML = mClient.ReadHtml(CheckLink(SConv(rLink.second), pathURL.string()));
 									if (sHTML)
 									{
@@ -560,6 +567,7 @@ int main(int argc, char* argv[])
 														while (++iTimes < iRetryTimes)
 														{
 															BOOST_LOG_TRIVIAL(trace) << ".";
+															std::this_thread::sleep_for(duSleep);
 															bOK = mClient.GetBinaryFile(sLink, sImagePath.wstring());
 															if (bOK)
 																break;
